@@ -3,46 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GMAO Pro 2026</title>
+  <title>GMAO Pro - Acceso Restringido</title>
   <style>
-    :root { --primary: #2563eb; --sec: #475569; --bg: #f8fafc; --success: #22c55e; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-    .container { max-width: 800px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-    h1, h2 { color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-    .card { border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; }
-    label { display: block; margin-top: 1rem; font-weight: 600; color: #475569; font-size: 0.9rem; }
-    select, input, textarea { width: 100%; padding: 0.75rem; margin-top: 0.5rem; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; }
-    button { width: 100%; background: var(--primary); color: white; padding: 0.75rem; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 1.5rem; }
-    button.sec { background: var(--sec); }
+    :root { --primary: #2563eb; --sec: #64748b; --bg: #f1f5f9; --success: #16a34a; --white: #ffffff; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
+    .container { max-width: 600px; margin: auto; background: var(--white); padding: 2rem; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    h1, h2 { text-align: center; color: #0f172a; margin-bottom: 1.5rem; }
+    .card { border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; background: #fff; }
+    label { display: block; margin-top: 1rem; font-weight: 600; font-size: 0.85rem; color: var(--sec); }
+    select, input, textarea { width: 100%; padding: 0.8rem; margin-top: 0.5rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+    textarea { resize: vertical; min-height: 80px; }
+    button { width: 100%; background: var(--primary); color: white; padding: 1rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 1.5rem; transition: transform 0.1s; }
+    button:active { transform: scale(0.98); }
+    button.sec { background: var(--sec); margin-top: 0.5rem; }
     .hidden { display: none; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+    .status-bar { text-align: center; font-size: 0.8rem; margin-bottom: 1rem; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
     th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
-    th { background: #f8fafc; }
-    .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; }
+    th { background: #f8fafc; color: var(--sec); }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div style="text-align:center">
-    <h1>GMAO Estructurado</h1>
-    <p id="status">Conectando...</p>
-  </div>
+  <div class="status-bar" id="connectionStatus">Cargando sistema...</div>
 
-  <div id="loginSection" class="card">
-    <h2>Acceso Personal</h2>
-    <select id="userRole">
-      <option value="">-- Selecciona tu Perfil --</option>
-      <option value="operario">Operario</option>
-      <option value="mantenimiento">Mantenimiento</option>
-      <option value="admin">Administrador</option>
-    </select>
-    <button onclick="login()">Entrar</button>
+  <div id="loginSection">
+    <h1>GMAO 2026</h1>
+    <div class="card">
+      <h2>Iniciar Sesión</h2>
+      <label>Nombre de Usuario:</label>
+      <input type="text" id="loginUser" placeholder="Tu nombre en la Columna B">
+      <label>Contraseña:</label>
+      <input type="password" id="loginPass" placeholder="Tu ID en la Columna A">
+      <button onclick="handleLogin()">Entrar al Sistema</button>
+    </div>
   </div>
 
   <div id="operarioPanel" class="hidden">
+    <h2>Reporte de Avería</h2>
     <div class="card">
-      <h2>Reportar Avería</h2>
       <label>Sector:</label>
       <select id="opSector">
         <option value="finder">Finder</option>
@@ -55,65 +55,67 @@
         <option value="otro">Otro</option>
       </select>
 
-      <label>Activo (Columna B):</label>
+      <label>Activo afectado:</label>
       <select id="opActivo"></select>
 
-      <label>Fecha y Hora de la Avería:</label>
+      <label>Explicación de la avería:</label>
+      <textarea id="opComentario" placeholder="Describe brevemente qué sucede..."></textarea>
+
+      <label>Fecha y Hora:</label>
       <input type="datetime-local" id="opFecha">
 
-      <button onclick="enviarAveria()">Enviar Reporte</button>
-      <button class="sec" onclick="location.reload()">Cerrar Sesión</button>
+      <button onclick="enviarAveria()">Enviar a Mantenimiento</button>
+      <button class="sec" onclick="logout()">Cerrar Sesión</button>
     </div>
   </div>
 
   <div id="mantenimientoPanel" class="hidden">
-    <div class="card">
-      <h2>Mis Órdenes de Trabajo</h2>
-      <div id="otContainer" style="overflow-x:auto">Cargando OTs...</div>
-    </div>
+    <h2>Órdenes de Trabajo</h2>
+    <div class="card" id="otContainer" style="overflow-x:auto">Cargando lista...</div>
     
-    <div id="editOTBox" class="card hidden" style="background: #f0f9ff; border: 2px solid #bae6fd;">
-        <h3>Actualizar OT: <span id="editID"></span></h3>
-        <label>Estado Actual:</label>
+    <div id="editOTBox" class="card hidden" style="background: #f0fdf4; border: 2px solid #bbf7d0;">
+        <h3>Editar OT: <span id="editID"></span></h3>
+        <label>Estado:</label>
         <select id="editEstado">
             <option value="Por ver">Por ver</option>
             <option value="En marcha">En marcha</option>
             <option value="Cerrada">Cerrada</option>
         </select>
-        <label>Tiempo invertido (Horas):</label>
-        <input type="number" id="editTiempo" step="0.5" placeholder="Ej: 2.5">
-        <button onclick="guardarCambiosOT()">Guardar Cambios</button>
+        <label>Horas trabajadas:</label>
+        <input type="number" id="editTiempo" step="0.5">
+        <button onclick="guardarCambiosOT()">Actualizar OT</button>
     </div>
 
     <div class="card">
-      <h2>Control de Stocks</h2>
+      <h2>Inventario</h2>
       <select id="stkPieza"></select>
-      <input type="number" id="stkCant" placeholder="Cantidad (ej: -1 para usar)">
+      <input type="number" id="stkCant" placeholder="Cantidad (ej: -1)">
       <button onclick="ajustarStock()">Actualizar Stock</button>
-      <button class="sec" onclick="location.reload()">Cerrar Sesión</button>
+      <button class="sec" onclick="logout()">Cerrar Sesión</button>
     </div>
   </div>
 
   <div id="adminPanel" class="hidden">
+    <h2>Panel de Control</h2>
     <div class="card">
-      <h2>Crear OT Nueva</h2>
-      <label>Tipo:</label>
+      <label>Tipo OT:</label>
       <select id="admTipo"><option>Correctivo</option><option>Preventivo</option></select>
       <label>Activo:</label>
       <select id="admActivo"></select>
       <label>Descripción:</label>
       <textarea id="admDesc"></textarea>
-      <label>Asignar a (Mantenimiento):</label>
+      <label>Asignar a:</label>
       <select id="admAsignar"></select>
-      <button onclick="crearOT()">Crear Orden</button>
+      <button onclick="crearOT()">Crear Nueva OT</button>
     </div>
-    <button class="sec" onclick="location.reload()">Cerrar Sesión</button>
+    <button class="sec" onclick="logout()">Cerrar Sesión</button>
   </div>
 </div>
 
 <script>
-  const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkhX-Z68JYinzNpg-2xqCXJW74hXvuXFsxg2WEzUs8Mrz4NJlYCA68bcNRxR4INFJQOQ/exec"; // <--- PEGA TU URL AQUÍ
+  const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0EJE-getuE1BptDs_PcXsN0ILwMVB9esEf0cvnJahvO_q_rrztfk0Y75Psf9ThM1i6w/exec"; // <--- PEGA TU URL AQUÍ
   let appData = {};
+  let currentUser = "";
 
   async function api(action, data = {}) {
     const res = await fetch(APPSCRIPT_URL, {
@@ -126,54 +128,63 @@
   window.onload = async () => {
     const res = await api('getAppData');
     appData = res;
-    document.getElementById('status').innerText = "✅ Sistema Listo";
-    llenarDesplegables();
+    document.getElementById('connectionStatus').innerText = "● Sistema Conectado";
+    document.getElementById('connectionStatus').style.color = "var(--success)";
+    llenarListas();
   };
 
-  function llenarDesplegables() {
-    // Llenar Activos (Buscando Columna Nombre_Activo)
+  async function handleLogin() {
+    const user = document.getElementById('loginUser').value;
+    const pass = document.getElementById('loginPass').value;
+    
+    const res = await api('login', { user, pass });
+    
+    if(res.status === 'success') {
+      currentUser = res.userName;
+      document.getElementById('loginSection').classList.add('hidden');
+      if(res.role === 'operario') document.getElementById('operarioPanel').classList.remove('hidden');
+      if(res.role === 'mantenimiento') {
+        document.getElementById('mantenimientoPanel').classList.remove('hidden');
+        renderOTs();
+      }
+      if(res.role === 'admin') document.getElementById('adminPanel').classList.remove('hidden');
+    } else {
+      alert(res.message);
+    }
+  }
+
+  function logout() { location.reload(); }
+
+  function llenarListas() {
     const activoHtml = appData.activos.map(a => `<option value="${a.Nombre_Activo}">${a.Nombre_Activo}</option>`).join('');
     document.getElementById('opActivo').innerHTML = activoHtml;
     document.getElementById('admActivo').innerHTML = activoHtml;
 
-    // Llenar Usuarios (Filtrar por Rol Mantenimiento)
     const mantUsers = appData.usuarios.filter(u => u.Rol.toLowerCase() === 'mantenimiento');
     document.getElementById('admAsignar').innerHTML = mantUsers.map(u => `<option value="${u.Nombre}">${u.Nombre}</option>`).join('');
 
-    // Llenar Repuestos
     document.getElementById('stkPieza').innerHTML = appData.inventario.map(i => `<option value="${i.ID}">${i.Pieza} (${i.Cantidad})</option>`).join('');
-  }
-
-  function login() {
-    const role = document.getElementById('userRole').value;
-    document.getElementById('loginSection').classList.add('hidden');
-    if(role === 'operario') document.getElementById('operarioPanel').classList.remove('hidden');
-    if(role === 'mantenimiento') {
-        document.getElementById('mantenimientoPanel').classList.remove('hidden');
-        renderOTs();
-    }
-    if(role === 'admin') document.getElementById('adminPanel').classList.remove('hidden');
   }
 
   async function enviarAveria() {
     const data = {
       sector: document.getElementById('opSector').value,
       activo: document.getElementById('opActivo').value,
+      comentario: document.getElementById('opComentario').value,
       fecha: document.getElementById('opFecha').value
     };
     const res = await api('saveOperatorRecord', data);
     alert(res.message);
-    location.reload();
+    logout();
   }
 
   function renderOTs() {
-    let html = `<table><tr><th>ID</th><th>Activo</th><th>Estado</th><th>Acción</th></tr>`;
+    let html = `<table><tr><th>Activo</th><th>Estado</th><th>Acción</th></tr>`;
     appData.ots.forEach(ot => {
       html += `<tr>
-        <td>${ot.ID_OT}</td>
         <td>${ot.Activo}</td>
-        <td><span class="status-badge">${ot.Estado}</span></td>
-        <td><button style="padding:4px; margin:0; font-size:10px" onclick="abrirEditorOT('${ot.ID_OT}', '${ot.Estado}', ${ot.Tiempo_h})">Editar</button></td>
+        <td>${ot.Estado}</td>
+        <td><button style="padding:5px; margin:0; font-size:11px" onclick="abrirEditorOT('${ot.ID_OT}', '${ot.Estado}', ${ot.Tiempo_h})">Editar</button></td>
       </tr>`;
     });
     document.getElementById('otContainer').innerHTML = html + `</table>`;
