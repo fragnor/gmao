@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <base target="_top">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GMAO - Gestión de Mantenimiento</title>
   <style>
     :root { --primary: #3498db; --secondary: #2c3e50; --success: #2ecc71; --bg: #f4f7f6; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; }
@@ -15,7 +16,7 @@
     button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
     button:hover { opacity: 0.9; }
     button.secondary { background: #95a5a6; }
-    button.copy-btn { background: var(--secondary); margin-top: 5px; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
 
     .hidden { display: none; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -26,8 +27,6 @@
     
     .toast { position: fixed; top: 20px; right: 20px; background: var(--success); color: white; padding: 12px 25px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; z-index: 1000; }
     
-    .url-box { background: #f8fafc; padding: 10px; border: 1px dashed var(--primary); border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 12px; }
-
     @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -38,7 +37,7 @@
 <div class="container">
   <div style="text-align:center">
     <h1>GMAO Pro 2026</h1>
-    <p id="statusTag" style="color: #718096; font-size: 0.9em;">Base de datos en Google Sheets</p>
+    <p id="statusTag" style="color: #718096; font-size: 0.9em;">Conectando con Base de Datos...</p>
   </div>
 
   <div id="loginSection" class="card">
@@ -50,7 +49,7 @@
       <option value="mantenimiento">Mantenimiento (Ejecución)</option>
       <option value="admin">Administrador (Gestión Total)</option>
     </select>
-    <button onclick="login()">Entrar al Panel</button>
+    <button id="btnLogin" onclick="login()" disabled>Cargando datos...</button>
   </div>
 
   <div id="operarioPanel" class="hidden card">
@@ -73,7 +72,7 @@
     </div>
     
     <button onclick="submitOperario()">Enviar a Mantenimiento</button>
-    <button class="secondary" onclick="logout()">Cerrar Sesión</button>
+    <button class="secondary" onclick="logout()">Volver al Inicio</button>
   </div>
 
   <div id="mantenimientoPanel" class="hidden">
@@ -89,7 +88,7 @@
       <label>Cantidad (Usa "-" para restar):</label>
       <input type="number" id="mantCantidad" placeholder="Ej: -2">
       <button onclick="updateStockMant()">Actualizar Inventario</button>
-      <button class="secondary" onclick="logout()">Cerrar Sesión</button>
+      <button class="secondary" onclick="logout()">Volver al Inicio</button>
     </div>
   </div>
 
@@ -115,38 +114,52 @@
         <div>
           <h3>Nuevo Activo</h3>
           <input type="text" id="newActivoNombre" placeholder="Ej: Prensa Hidráulica">
-          <button onclick="addEntity('Activos')">Registrar</button>
+          <button onclick="addEntity('Activos')">Registrar Activo</button>
         </div>
         <div>
           <h3>Nueva Tarea</h3>
           <input type="text" id="newTareaDesc" placeholder="Ej: Engrase General">
-          <button onclick="addEntity('Tareas')">Registrar</button>
+          <button onclick="addEntity('Tareas')">Registrar Tarea</button>
         </div>
       </div>
     </div>
-
-    <div class="card" style="border: 2px solid #e2e8f0; background: #fffaf0;">
-      <h3>🔗 Enlace de la Aplicación</h3>
-      <p style="font-size: 0.85em; color: #4a5568;">Usa este enlace para compartir el GMAO con los operarios:</p>
-      <div id="displayUrl" class="url-box">Detectando URL...</div>
-      <button class="copy-btn" onclick="copyAppUrl()">Copiar URL al Portapapeles</button>
-    </div>
-    
-    <button class="secondary" onclick="logout()">Cerrar Sesión</button>
+    <button class="secondary" onclick="logout()">Volver al Inicio</button>
   </div>
 </div>
 
 <script>
+  // ==========================================
+  // PEGA AQUÍ LA URL DE TU GOOGLE APPS SCRIPT
+  // ==========================================
+  const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhfkcycwS5ecZbRYFQLLlPYI0lccMp5K0FRLDID-5KiwQcLMkMwqsfPmHWbOW_tSfZIg/exec";
+  
   let appData = {};
 
+  // Función principal para comunicarse con Google Sheets
+  async function apiCall(action, payload = {}) {
+    const response = await fetch(APPSCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: action, data: payload })
+    });
+    return await response.json();
+  }
+
   // Inicialización
-  window.onload = function() {
-    google.script.run.withSuccessHandler(function(data) {
-      appData = data;
-      populateDropdowns();
-      // Mostrar la URL actual
-      document.getElementById('displayUrl').innerText = window.location.href;
-    }).getAppData();
+  window.onload = async function() {
+    try {
+      const response = await apiCall('getAppData');
+      if(response.status === 'success') {
+        appData = response.data;
+        populateDropdowns();
+        document.getElementById('statusTag').innerText = "Conectado";
+        document.getElementById('statusTag').style.color = "var(--success)";
+        document.getElementById('btnLogin').disabled = false;
+        document.getElementById('btnLogin').innerText = "Entrar al Panel";
+      }
+    } catch (error) {
+      document.getElementById('statusTag').innerText = "Error de conexión con la base de datos";
+      document.getElementById('statusTag').style.color = "red";
+    }
   };
 
   function showToast(msg) {
@@ -154,13 +167,6 @@
     t.innerText = msg;
     t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 3000);
-  }
-
-  function copyAppUrl() {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-      showToast("¡URL copiada!");
-    });
   }
 
   function login() {
@@ -177,57 +183,62 @@
   }
 
   function logout() {
-    location.reload();
+    document.getElementById('loginSection').classList.remove('hidden');
+    document.getElementById('operarioPanel').classList.add('hidden');
+    document.getElementById('mantenimientoPanel').classList.add('hidden');
+    document.getElementById('adminPanel').classList.add('hidden');
   }
 
   function populateDropdowns() {
-    // Activos
     let actHtml = appData.activos.map(a => `<option value="${a.Nombre_Activo}">${a.Nombre_Activo}</option>`).join('');
     document.getElementById('opActivo').innerHTML = actHtml;
     document.getElementById('adminActivo').innerHTML = actHtml;
 
-    // Averías
     let avHtml = appData.averias.map(a => `<option value="${a.Descripcion}">${a.Descripcion}</option>`).join('');
     document.getElementById('opAveria').innerHTML = avHtml;
 
-    // Personal Mantenimiento/Admin
     let usHtml = appData.usuarios.filter(u => u.Rol !== 'operario').map(u => `<option value="${u.Nombre}">${u.Nombre}</option>`).join('');
     document.getElementById('adminAsignado').innerHTML = usHtml;
 
-    // Stock
     let invHtml = appData.inventario.map(i => `<option value="${i.ID_Pieza}">${i.Nombre_Pieza} (Stock: ${i.Cantidad_Disponible})</option>`).join('');
     document.getElementById('mantPieza').innerHTML = invHtml;
   }
 
-  function submitOperario() {
-    const data = {
+  async function submitOperario() {
+    const payload = {
       operario: "Operario_Web",
       activo: document.getElementById('opActivo').value,
       averia: document.getElementById('opAveria').value,
       inicio: document.getElementById('opInicio').value,
       fin: document.getElementById('opFin').value
     };
-    google.script.run.withSuccessHandler(res => { showToast(res); logout(); }).saveOperatorRecord(data);
+    const res = await apiCall('saveOperatorRecord', payload);
+    if(res.status === 'success') {
+      showToast(res.message);
+      logout();
+    }
   }
 
-  function crearOT() {
-    const data = {
+  async function crearOT() {
+    const payload = {
       tipo: document.getElementById('adminTipoOT').value,
       activo: document.getElementById('adminActivo').value,
       descripcion: document.getElementById('adminDesc').value,
       asignado: document.getElementById('adminAsignado').value
     };
-    google.script.run.withSuccessHandler(showToast).createOT(data);
+    const res = await apiCall('createOT', payload);
+    if(res.status === 'success') showToast(res.message);
   }
 
-  function addEntity(type) {
-    let row = {};
+  async function addEntity(type) {
+    let payload = {};
     if(type === 'Activos') {
-      row = { nombre: document.getElementById('newActivoNombre').value, estado: 'Operativo' };
+      payload = { nombre: document.getElementById('newActivoNombre').value, estado: 'Operativo' };
     } else {
-      row = { descripcion: document.getElementById('newTareaDesc').value, frecuencia: 'A definir' };
+      payload = { descripcion: document.getElementById('newTareaDesc').value, frecuencia: 'A definir' };
     }
-    google.script.run.withSuccessHandler(showToast).saveAdminEntity(type, row);
+    const res = await apiCall('saveAdminEntity', { type: type, rowData: payload });
+    if(res.status === 'success') showToast(res.message);
   }
 
   function renderOTs() {
@@ -239,11 +250,12 @@
     document.getElementById('otList').innerHTML = html;
   }
 
-  function updateStockMant() {
+  async function updateStockMant() {
     const id = document.getElementById('mantPieza').value;
     const qty = document.getElementById('mantCantidad').value;
     if(!qty) return;
-    google.script.run.withSuccessHandler(showToast).updateStock(id, qty);
+    const res = await apiCall('updateStock', { idPieza: id, cantidad: qty });
+    if(res.status === 'success') showToast(res.message);
   }
 </script>
 </body>
