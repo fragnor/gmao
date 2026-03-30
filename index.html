@@ -3,259 +3,216 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GMAO - Gestión de Mantenimiento</title>
+  <title>GMAO Pro 2026</title>
   <style>
-    :root { --primary: #3498db; --secondary: #2c3e50; --success: #2ecc71; --bg: #f4f7f6; }
-    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; }
-    .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-    h1, h2, h3 { color: var(--secondary); border-bottom: 2px solid #eee; padding-bottom: 8px; }
-    
-    .card { background: #fff; border: 1px solid #e1e4e8; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-    select, input, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-    
-    button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
-    button:hover { opacity: 0.9; }
-    button.secondary { background: #95a5a6; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-
+    :root { --primary: #2563eb; --sec: #475569; --bg: #f8fafc; --success: #22c55e; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    h1, h2 { color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+    .card { border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; }
+    label { display: block; margin-top: 1rem; font-weight: 600; color: #475569; font-size: 0.9rem; }
+    select, input, textarea { width: 100%; padding: 0.75rem; margin-top: 0.5rem; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; }
+    button { width: 100%; background: var(--primary); color: white; padding: 0.75rem; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 1.5rem; }
+    button.sec { background: var(--sec); }
     .hidden { display: none; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-    th, td { border: 1px solid #edf2f7; padding: 12px; text-align: left; }
-    th { background-color: #f8fafc; color: var(--secondary); }
-    
-    .toast { position: fixed; top: 20px; right: 20px; background: var(--success); color: white; padding: 12px 25px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; z-index: 1000; }
-    
-    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+    th { background: #f8fafc; }
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; }
   </style>
 </head>
 <body>
 
-<div id="toast" class="toast">¡Hecho con éxito!</div>
-
 <div class="container">
   <div style="text-align:center">
-    <h1>GMAO Pro 2026</h1>
-    <p id="statusTag" style="color: #718096; font-size: 0.9em;">Conectando con Base de Datos...</p>
+    <h1>GMAO Estructurado</h1>
+    <p id="status">Conectando...</p>
   </div>
 
   <div id="loginSection" class="card">
-    <h2>Acceso al Sistema</h2>
-    <label>Selecciona tu perfil de usuario:</label>
+    <h2>Acceso Personal</h2>
     <select id="userRole">
-      <option value="">-- Seleccionar Rol --</option>
-      <option value="operario">Operario (Reportes)</option>
-      <option value="mantenimiento">Mantenimiento (Ejecución)</option>
-      <option value="admin">Administrador (Gestión Total)</option>
+      <option value="">-- Selecciona tu Perfil --</option>
+      <option value="operario">Operario</option>
+      <option value="mantenimiento">Mantenimiento</option>
+      <option value="admin">Administrador</option>
     </select>
-    <button id="btnLogin" onclick="login()" disabled>Cargando datos...</button>
+    <button onclick="login()">Entrar</button>
   </div>
 
-  <div id="operarioPanel" class="hidden card">
-    <h2>🛠 Reporte de Avería</h2>
-    <label>Activo afectado:</label>
-    <select id="opActivo"></select>
-    
-    <label>Tipo de fallo:</label>
-    <select id="opAveria"></select>
-    
-    <div class="grid">
-      <div>
-        <label>Hora Inicio:</label>
-        <input type="datetime-local" id="opInicio">
-      </div>
-      <div>
-        <label>Hora Fin:</label>
-        <input type="datetime-local" id="opFin">
-      </div>
+  <div id="operarioPanel" class="hidden">
+    <div class="card">
+      <h2>Reportar Avería</h2>
+      <label>Sector:</label>
+      <select id="opSector">
+        <option value="finder">Finder</option>
+        <option value="zurik">Zurik</option>
+        <option value="steinert">Steinert</option>
+        <option value="medios densos">Medios Densos</option>
+        <option value="molino">Molino</option>
+        <option value="maquinaria movil">Maquinaria Móvil</option>
+        <option value="planta">Planta</option>
+        <option value="otro">Otro</option>
+      </select>
+
+      <label>Activo (Columna B):</label>
+      <select id="opActivo"></select>
+
+      <label>Fecha y Hora de la Avería:</label>
+      <input type="datetime-local" id="opFecha">
+
+      <button onclick="enviarAveria()">Enviar Reporte</button>
+      <button class="sec" onclick="location.reload()">Cerrar Sesión</button>
     </div>
-    
-    <button onclick="submitOperario()">Enviar a Mantenimiento</button>
-    <button class="secondary" onclick="logout()">Volver al Inicio</button>
   </div>
 
   <div id="mantenimientoPanel" class="hidden">
     <div class="card">
-      <h2>📋 Órdenes de Trabajo Pendientes</h2>
-      <div style="overflow-x:auto" id="otList">Cargando datos...</div>
+      <h2>Mis Órdenes de Trabajo</h2>
+      <div id="otContainer" style="overflow-x:auto">Cargando OTs...</div>
     </div>
     
+    <div id="editOTBox" class="card hidden" style="background: #f0f9ff; border: 2px solid #bae6fd;">
+        <h3>Actualizar OT: <span id="editID"></span></h3>
+        <label>Estado Actual:</label>
+        <select id="editEstado">
+            <option value="Por ver">Por ver</option>
+            <option value="En marcha">En marcha</option>
+            <option value="Cerrada">Cerrada</option>
+        </select>
+        <label>Tiempo invertido (Horas):</label>
+        <input type="number" id="editTiempo" step="0.5" placeholder="Ej: 2.5">
+        <button onclick="guardarCambiosOT()">Guardar Cambios</button>
+    </div>
+
     <div class="card">
-      <h2>📦 Gestión de Stock</h2>
-      <label>Pieza/Repuesto:</label>
-      <select id="mantPieza"></select>
-      <label>Cantidad (Usa "-" para restar):</label>
-      <input type="number" id="mantCantidad" placeholder="Ej: -2">
-      <button onclick="updateStockMant()">Actualizar Inventario</button>
-      <button class="secondary" onclick="logout()">Volver al Inicio</button>
+      <h2>Control de Stocks</h2>
+      <select id="stkPieza"></select>
+      <input type="number" id="stkCant" placeholder="Cantidad (ej: -1 para usar)">
+      <button onclick="ajustarStock()">Actualizar Stock</button>
+      <button class="sec" onclick="location.reload()">Cerrar Sesión</button>
     </div>
   </div>
 
   <div id="adminPanel" class="hidden">
     <div class="card">
-      <h2>➕ Crear Nueva OT (Preventivo/Correctivo)</h2>
-      <div class="grid">
-        <select id="adminTipoOT">
-          <option value="Correctivo">Correctivo</option>
-          <option value="Preventivo">Preventivo</option>
-        </select>
-        <select id="adminActivo"></select>
-      </div>
-      <input type="text" id="adminDesc" placeholder="Descripción de la tarea o fallo detectado">
-      <label>Asignar a:</label>
-      <select id="adminAsignado"></select>
-      <button onclick="crearOT()">Generar Orden</button>
+      <h2>Crear OT Nueva</h2>
+      <label>Tipo:</label>
+      <select id="admTipo"><option>Correctivo</option><option>Preventivo</option></select>
+      <label>Activo:</label>
+      <select id="admActivo"></select>
+      <label>Descripción:</label>
+      <textarea id="admDesc"></textarea>
+      <label>Asignar a (Mantenimiento):</label>
+      <select id="admAsignar"></select>
+      <button onclick="crearOT()">Crear Orden</button>
     </div>
-
-    <div class="card">
-      <h2>⚙️ Configuración y Maestros</h2>
-      <div class="grid">
-        <div>
-          <h3>Nuevo Activo</h3>
-          <input type="text" id="newActivoNombre" placeholder="Ej: Prensa Hidráulica">
-          <button onclick="addEntity('Activos')">Registrar Activo</button>
-        </div>
-        <div>
-          <h3>Nueva Tarea</h3>
-          <input type="text" id="newTareaDesc" placeholder="Ej: Engrase General">
-          <button onclick="addEntity('Tareas')">Registrar Tarea</button>
-        </div>
-      </div>
-    </div>
-    <button class="secondary" onclick="logout()">Volver al Inicio</button>
+    <button class="sec" onclick="location.reload()">Cerrar Sesión</button>
   </div>
 </div>
 
 <script>
-  // ==========================================
-  // PEGA AQUÍ LA URL DE TU GOOGLE APPS SCRIPT
-  // ==========================================
-  const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhfkcycwS5ecZbRYFQLLlPYI0lccMp5K0FRLDID-5KiwQcLMkMwqsfPmHWbOW_tSfZIg/exec";
-  
+  const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmTAXPtNqxcA2ZsGg33ROWJceeqW2m8XrU55N6yTEOt_G-VvLuwIIXHJyWI22YoLfqGw/exec"; // <--- PEGA TU URL AQUÍ
   let appData = {};
 
-  // Función principal para comunicarse con Google Sheets
-  async function apiCall(action, payload = {}) {
-    const response = await fetch(APPSCRIPT_URL, {
+  async function api(action, data = {}) {
+    const res = await fetch(APPSCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: action, data: payload })
+      body: JSON.stringify({ action, data })
     });
-    return await response.json();
+    return await res.json();
   }
 
-  // Inicialización
-  window.onload = async function() {
-    try {
-      const response = await apiCall('getAppData');
-      if(response.status === 'success') {
-        appData = response.data;
-        populateDropdowns();
-        document.getElementById('statusTag').innerText = "Conectado";
-        document.getElementById('statusTag').style.color = "var(--success)";
-        document.getElementById('btnLogin').disabled = false;
-        document.getElementById('btnLogin').innerText = "Entrar al Panel";
-      }
-    } catch (error) {
-      document.getElementById('statusTag').innerText = "Error de conexión con la base de datos";
-      document.getElementById('statusTag').style.color = "red";
-    }
+  window.onload = async () => {
+    const res = await api('getAppData');
+    appData = res;
+    document.getElementById('status').innerText = "✅ Sistema Listo";
+    llenarDesplegables();
   };
 
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerText = msg;
-    t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 3000);
+  function llenarDesplegables() {
+    // Llenar Activos (Buscando Columna Nombre_Activo)
+    const activoHtml = appData.activos.map(a => `<option value="${a.Nombre_Activo}">${a.Nombre_Activo}</option>`).join('');
+    document.getElementById('opActivo').innerHTML = activoHtml;
+    document.getElementById('admActivo').innerHTML = activoHtml;
+
+    // Llenar Usuarios (Filtrar por Rol Mantenimiento)
+    const mantUsers = appData.usuarios.filter(u => u.Rol.toLowerCase() === 'mantenimiento');
+    document.getElementById('admAsignar').innerHTML = mantUsers.map(u => `<option value="${u.Nombre}">${u.Nombre}</option>`).join('');
+
+    // Llenar Repuestos
+    document.getElementById('stkPieza').innerHTML = appData.inventario.map(i => `<option value="${i.ID}">${i.Pieza} (${i.Cantidad})</option>`).join('');
   }
 
   function login() {
     const role = document.getElementById('userRole').value;
-    if(!role) return alert("Selecciona un rol");
-    
     document.getElementById('loginSection').classList.add('hidden');
     if(role === 'operario') document.getElementById('operarioPanel').classList.remove('hidden');
     if(role === 'mantenimiento') {
-      document.getElementById('mantenimientoPanel').classList.remove('hidden');
-      renderOTs();
+        document.getElementById('mantenimientoPanel').classList.remove('hidden');
+        renderOTs();
     }
     if(role === 'admin') document.getElementById('adminPanel').classList.remove('hidden');
   }
 
-  function logout() {
-    document.getElementById('loginSection').classList.remove('hidden');
-    document.getElementById('operarioPanel').classList.add('hidden');
-    document.getElementById('mantenimientoPanel').classList.add('hidden');
-    document.getElementById('adminPanel').classList.add('hidden');
-  }
-
-  function populateDropdowns() {
-    let actHtml = appData.activos.map(a => `<option value="${a.Nombre_Activo}">${a.Nombre_Activo}</option>`).join('');
-    document.getElementById('opActivo').innerHTML = actHtml;
-    document.getElementById('adminActivo').innerHTML = actHtml;
-
-    let avHtml = appData.averias.map(a => `<option value="${a.Descripcion}">${a.Descripcion}</option>`).join('');
-    document.getElementById('opAveria').innerHTML = avHtml;
-
-    let usHtml = appData.usuarios.filter(u => u.Rol !== 'operario').map(u => `<option value="${u.Nombre}">${u.Nombre}</option>`).join('');
-    document.getElementById('adminAsignado').innerHTML = usHtml;
-
-    let invHtml = appData.inventario.map(i => `<option value="${i.ID_Pieza}">${i.Nombre_Pieza} (Stock: ${i.Cantidad_Disponible})</option>`).join('');
-    document.getElementById('mantPieza').innerHTML = invHtml;
-  }
-
-  async function submitOperario() {
-    const payload = {
-      operario: "Operario_Web",
+  async function enviarAveria() {
+    const data = {
+      sector: document.getElementById('opSector').value,
       activo: document.getElementById('opActivo').value,
-      averia: document.getElementById('opAveria').value,
-      inicio: document.getElementById('opInicio').value,
-      fin: document.getElementById('opFin').value
+      fecha: document.getElementById('opFecha').value
     };
-    const res = await apiCall('saveOperatorRecord', payload);
-    if(res.status === 'success') {
-      showToast(res.message);
-      logout();
-    }
-  }
-
-  async function crearOT() {
-    const payload = {
-      tipo: document.getElementById('adminTipoOT').value,
-      activo: document.getElementById('adminActivo').value,
-      descripcion: document.getElementById('adminDesc').value,
-      asignado: document.getElementById('adminAsignado').value
-    };
-    const res = await apiCall('createOT', payload);
-    if(res.status === 'success') showToast(res.message);
-  }
-
-  async function addEntity(type) {
-    let payload = {};
-    if(type === 'Activos') {
-      payload = { nombre: document.getElementById('newActivoNombre').value, estado: 'Operativo' };
-    } else {
-      payload = { descripcion: document.getElementById('newTareaDesc').value, frecuencia: 'A definir' };
-    }
-    const res = await apiCall('saveAdminEntity', { type: type, rowData: payload });
-    if(res.status === 'success') showToast(res.message);
+    const res = await api('saveOperatorRecord', data);
+    alert(res.message);
+    location.reload();
   }
 
   function renderOTs() {
-    let html = "<table><tr><th>ID</th><th>Activo</th><th>Tarea</th><th>Estado</th></tr>";
+    let html = `<table><tr><th>ID</th><th>Activo</th><th>Estado</th><th>Acción</th></tr>`;
     appData.ots.forEach(ot => {
-      html += `<tr><td>${ot.ID_OT}</td><td>${ot.Activo}</td><td>${ot.Averia_Desc}</td><td><b>${ot.Estado}</b></td></tr>`;
+      html += `<tr>
+        <td>${ot.ID_OT}</td>
+        <td>${ot.Activo}</td>
+        <td><span class="status-badge">${ot.Estado}</span></td>
+        <td><button style="padding:4px; margin:0; font-size:10px" onclick="abrirEditorOT('${ot.ID_OT}', '${ot.Estado}', ${ot.Tiempo_h})">Editar</button></td>
+      </tr>`;
     });
-    html += "</table>";
-    document.getElementById('otList').innerHTML = html;
+    document.getElementById('otContainer').innerHTML = html + `</table>`;
   }
 
-  async function updateStockMant() {
-    const id = document.getElementById('mantPieza').value;
-    const qty = document.getElementById('mantCantidad').value;
-    if(!qty) return;
-    const res = await apiCall('updateStock', { idPieza: id, cantidad: qty });
-    if(res.status === 'success') showToast(res.message);
+  function abrirEditorOT(id, estado, tiempo) {
+      document.getElementById('editOTBox').classList.remove('hidden');
+      document.getElementById('editID').innerText = id;
+      document.getElementById('editEstado').value = estado;
+      document.getElementById('editTiempo').value = tiempo;
+  }
+
+  async function guardarCambiosOT() {
+      const data = {
+          idOT: document.getElementById('editID').innerText,
+          estado: document.getElementById('editEstado').value,
+          tiempo: document.getElementById('editTiempo').value
+      };
+      const res = await api('updateOT', data);
+      alert(res.message);
+      location.reload();
+  }
+
+  async function ajustarStock() {
+    const data = { idPieza: document.getElementById('stkPieza').value, cantidad: document.getElementById('stkCant').value };
+    const res = await api('updateStock', data);
+    alert(res.message);
+    location.reload();
+  }
+
+  async function crearOT() {
+    const data = {
+      tipo: document.getElementById('admTipo').value,
+      activo: document.getElementById('admActivo').value,
+      descripcion: document.getElementById('admDesc').value,
+      asignado: document.getElementById('admAsignar').value
+    };
+    const res = await api('createOT', data);
+    alert(res.message);
   }
 </script>
 </body>
