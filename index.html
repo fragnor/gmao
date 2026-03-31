@@ -1,230 +1,168 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GMAO Pro - Acceso Restringido</title>
+  <title>GMAO Fast 2026</title>
   <style>
-    :root { --primary: #2563eb; --sec: #64748b; --bg: #f1f5f9; --success: #16a34a; --white: #ffffff; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
-    .container { max-width: 600px; margin: auto; background: var(--white); padding: 2rem; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-    h1, h2 { text-align: center; color: #0f172a; margin-bottom: 1.5rem; }
-    .card { border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; background: #fff; }
-    label { display: block; margin-top: 1rem; font-weight: 600; font-size: 0.85rem; color: var(--sec); }
-    select, input, textarea { width: 100%; padding: 0.8rem; margin-top: 0.5rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-    textarea { resize: vertical; min-height: 80px; }
-    button { width: 100%; background: var(--primary); color: white; padding: 1rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 1.5rem; transition: transform 0.1s; }
-    button:active { transform: scale(0.98); }
-    button.sec { background: var(--sec); margin-top: 0.5rem; }
+    :root { --p: #2563eb; --s: #64748b; --bg: #f8fafc; }
+    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 10px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    input, select, textarea { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: var(--p); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    button.del { background: #dc2626; margin-top: 5px; }
+    button.edit { background: #059669; }
     .hidden { display: none; }
-    .status-bar { text-align: center; font-size: 0.8rem; margin-bottom: 1rem; font-weight: bold; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
-    th { background: #f8fafc; color: var(--sec); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+    .header { display: flex; justify-content: space-between; align-items: center; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="status-bar" id="connectionStatus">Cargando sistema...</div>
-
-  <div id="loginSection">
-    <h1>GMAO 2026</h1>
-    <div class="card">
-      <h2>Iniciar Sesión</h2>
-      <label>Nombre de Usuario:</label>
-      <input type="text" id="loginUser" placeholder="Tu nombre en la Columna B">
-      <label>Contraseña:</label>
-      <input type="password" id="loginPass" placeholder="Tu ID en la Columna A">
-      <button onclick="handleLogin()">Entrar al Sistema</button>
-    </div>
+  <div id="loginPage">
+    <h2>GMAO Login</h2>
+    <input type="text" id="user" placeholder="Usuario">
+    <input type="password" id="pass" placeholder="Contraseña">
+    <button onclick="login()">Entrar</button>
   </div>
 
-  <div id="operarioPanel" class="hidden">
-    <h2>Reporte de Avería</h2>
-    <div class="card">
-      <label>Sector:</label>
-      <select id="opSector">
-        <option value="finder">Finder</option>
-        <option value="zurik">Zurik</option>
-        <option value="steinert">Steinert</option>
-        <option value="medios densos">Medios Densos</option>
-        <option value="molino">Molino</option>
-        <option value="maquinaria movil">Maquinaria Móvil</option>
-        <option value="planta">Planta</option>
-        <option value="otro">Otro</option>
+  <div id="mainPage" class="hidden">
+    <div class="header">
+      <h3 id="welcome"></h3>
+      <button onclick="location.reload()" style="width:auto; padding:5px 10px; background:#666">Salir</button>
+    </div>
+
+    <div id="createOTSection" class="card">
+      <h4>Nueva Orden de Trabajo</h4>
+      <select id="otSector">
+        <option>Finder</option><option>Zurik</option><option>Steinert</option>
+        <option>Medios Densos</option><option>Molino</option><option>Maquinaria Movil</option>
+        <option>Planta</option><option>Otro</option>
       </select>
-
-      <label>Activo afectado:</label>
-      <select id="opActivo"></select>
-
-      <label>Explicación de la avería:</label>
-      <textarea id="opComentario" placeholder="Describe brevemente qué sucede..."></textarea>
-
-      <label>Fecha y Hora:</label>
-      <input type="datetime-local" id="opFecha">
-
-      <button onclick="enviarAveria()">Enviar a Mantenimiento</button>
-      <button class="sec" onclick="logout()">Cerrar Sesión</button>
-    </div>
-  </div>
-
-  <div id="mantenimientoPanel" class="hidden">
-    <h2>Órdenes de Trabajo</h2>
-    <div class="card" id="otContainer" style="overflow-x:auto">Cargando lista...</div>
-    
-    <div id="editOTBox" class="card hidden" style="background: #f0fdf4; border: 2px solid #bbf7d0;">
-        <h3>Editar OT: <span id="editID"></span></h3>
-        <label>Estado:</label>
-        <select id="editEstado">
-            <option value="Por ver">Por ver</option>
-            <option value="En marcha">En marcha</option>
-            <option value="Cerrada">Cerrada</option>
-        </select>
-        <label>Horas trabajadas:</label>
-        <input type="number" id="editTiempo" step="0.5">
-        <button onclick="guardarCambiosOT()">Actualizar OT</button>
+      <select id="otActivo"></select>
+      <textarea id="otObs" placeholder="Observaciones de la avería"></textarea>
+      <input type="datetime-local" id="otFecha">
+      <button onclick="saveOT()">Enviar OT</button>
     </div>
 
     <div class="card">
-      <h2>Inventario</h2>
-      <select id="stkPieza"></select>
+      <h4>Listado de OTs</h4>
+      <div id="listOTs" style="overflow-x:auto"></div>
+    </div>
+
+    <div id="stockSection" class="hidden card">
+      <h4>Gestión de Stock</h4>
+      <select id="stkItem"></select>
       <input type="number" id="stkCant" placeholder="Cantidad (ej: -1)">
-      <button onclick="ajustarStock()">Actualizar Stock</button>
-      <button class="sec" onclick="logout()">Cerrar Sesión</button>
+      <button onclick="updateStock()">Ajustar Stock</button>
     </div>
-  </div>
 
-  <div id="adminPanel" class="hidden">
-    <h2>Panel de Control</h2>
-    <div class="card">
-      <label>Tipo OT:</label>
-      <select id="admTipo"><option>Correctivo</option><option>Preventivo</option></select>
-      <label>Activo:</label>
-      <select id="admActivo"></select>
-      <label>Descripción:</label>
-      <textarea id="admDesc"></textarea>
-      <label>Asignar a:</label>
-      <select id="admAsignar"></select>
-      <button onclick="crearOT()">Crear Nueva OT</button>
+    <div id="adminSection" class="hidden card">
+      <h4>Panel Administrador</h4>
+      <input type="text" id="newActName" placeholder="Nombre Nuevo Activo">
+      <button class="edit" onclick="addAdmin('Activos')">Crear Activo</button>
+      <input type="text" id="newStkName" placeholder="Nombre Nueva Pieza">
+      <button class="edit" onclick="addAdmin('Stock')" style="margin-top:10px">Crear Recambio</button>
     </div>
-    <button class="sec" onclick="logout()">Cerrar Sesión</button>
   </div>
 </div>
 
 <script>
-  const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0EJE-getuE1BptDs_PcXsN0ILwMVB9esEf0cvnJahvO_q_rrztfk0Y75Psf9ThM1i6w/exec"; // <--- PEGA TU URL AQUÍ
-  let appData = {};
-  let currentUser = "";
+  const URL = "TU_URL_APPSCRIPT"; 
+  let session = { user: '', role: '' };
+  let db = {};
 
-  async function api(action, data = {}) {
-    const res = await fetch(APPSCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action, data })
-    });
-    return await res.json();
+  async function api(action, data) {
+    const r = await fetch(URL, { method: 'POST', body: JSON.stringify({ action, data }) });
+    return r.json();
   }
 
-  window.onload = async () => {
-    const res = await api('getAppData');
-    appData = res;
-    document.getElementById('connectionStatus').innerText = "● Sistema Conectado";
-    document.getElementById('connectionStatus').style.color = "var(--success)";
-    llenarListas();
-  };
+  async function login() {
+    const res = await api('login', { user: val('user'), pass: val('pass') });
+    if (res.status === 'success') {
+      session = res;
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('mainPage').classList.remove('hidden');
+      document.getElementById('welcome').innerText = "Hola, " + res.user;
+      refresh();
+    } else alert(res.message);
+  }
 
-  async function handleLogin() {
-    const user = document.getElementById('loginUser').value;
-    const pass = document.getElementById('loginPass').value;
+  async function refresh() {
+    db = await api('getData', {});
     
-    const res = await api('login', { user, pass });
+    // Llenar activos
+    const act = document.getElementById('otActivo');
+    act.innerHTML = db.activos.map(a => `<option>${a.Nombre_Activo}</option>`).join('');
+
+    // Llenar stock
+    const stk = document.getElementById('stkItem');
+    stk.innerHTML = db.stock.map(s => `<option value="${s.ID_Pieza}">${s.Nombre_Pieza} (${s.Cantidad})</option>`).join('');
+
+    renderOTs();
     
-    if(res.status === 'success') {
-      currentUser = res.userName;
-      document.getElementById('loginSection').classList.add('hidden');
-      if(res.role === 'operario') document.getElementById('operarioPanel').classList.remove('hidden');
-      if(res.role === 'mantenimiento') {
-        document.getElementById('mantenimientoPanel').classList.remove('hidden');
-        renderOTs();
-      }
-      if(res.role === 'admin') document.getElementById('adminPanel').classList.remove('hidden');
-    } else {
-      alert(res.message);
+    // Mostrar secciones por rol
+    if (session.role === 'admin') {
+      document.getElementById('stockSection').classList.remove('hidden');
+      document.getElementById('adminSection').classList.remove('hidden');
+    } else if (session.role === 'mantenimiento') {
+      document.getElementById('stockSection').classList.remove('hidden');
     }
-  }
-
-  function logout() { location.reload(); }
-
-  function llenarListas() {
-    const activoHtml = appData.activos.map(a => `<option value="${a.Nombre_Activo}">${a.Nombre_Activo}</option>`).join('');
-    document.getElementById('opActivo').innerHTML = activoHtml;
-    document.getElementById('admActivo').innerHTML = activoHtml;
-
-    const mantUsers = appData.usuarios.filter(u => u.Rol.toLowerCase() === 'mantenimiento');
-    document.getElementById('admAsignar').innerHTML = mantUsers.map(u => `<option value="${u.Nombre}">${u.Nombre}</option>`).join('');
-
-    document.getElementById('stkPieza').innerHTML = appData.inventario.map(i => `<option value="${i.ID}">${i.Pieza} (${i.Cantidad})</option>`).join('');
-  }
-
-  async function enviarAveria() {
-    const data = {
-      sector: document.getElementById('opSector').value,
-      activo: document.getElementById('opActivo').value,
-      comentario: document.getElementById('opComentario').value,
-      fecha: document.getElementById('opFecha').value
-    };
-    const res = await api('saveOperatorRecord', data);
-    alert(res.message);
-    logout();
   }
 
   function renderOTs() {
     let html = `<table><tr><th>Activo</th><th>Estado</th><th>Acción</th></tr>`;
-    appData.ots.forEach(ot => {
-      html += `<tr>
-        <td>${ot.Activo}</td>
-        <td>${ot.Estado}</td>
-        <td><button style="padding:5px; margin:0; font-size:11px" onclick="abrirEditorOT('${ot.ID_OT}', '${ot.Estado}', ${ot.Tiempo_h})">Editar</button></td>
-      </tr>`;
+    db.ots.forEach(ot => {
+      let btns = '';
+      if (session.role === 'mantenimiento' || session.role === 'admin') {
+        btns = `<button class="edit" onclick="editOT('${ot.ID_OT}')">Gestionar</button>`;
+      }
+      if (ot.Creador === session.user || session.role === 'admin') {
+        btns += `<button class="del" onclick="deleteOT('${ot.ID_OT}')">Borrar</button>`;
+      }
+      html += `<tr><td>${ot.Activo}</td><td>${ot.Estado}</td><td>${btns}</td></tr>`;
     });
-    document.getElementById('otContainer').innerHTML = html + `</table>`;
+    document.getElementById('listOTs').innerHTML = html + `</table>`;
   }
 
-  function abrirEditorOT(id, estado, tiempo) {
-      document.getElementById('editOTBox').classList.remove('hidden');
-      document.getElementById('editID').innerText = id;
-      document.getElementById('editEstado').value = estado;
-      document.getElementById('editTiempo').value = tiempo;
+  async function saveOT() {
+    const data = { creador: session.user, sector: val('otSector'), activo: val('otActivo'), obs: val('otObs'), fecha: val('otFecha') };
+    await api('saveOT', data);
+    alert("Enviado");
+    clear(['otObs', 'otFecha']);
+    refresh();
   }
 
-  async function guardarCambiosOT() {
-      const data = {
-          idOT: document.getElementById('editID').innerText,
-          estado: document.getElementById('editEstado').value,
-          tiempo: document.getElementById('editTiempo').value
-      };
-      const res = await api('updateOT', data);
-      alert(res.message);
-      location.reload();
+  async function deleteOT(id) {
+    if (confirm("¿Borrar OT?")) { await api('deleteOT', { id }); refresh(); }
   }
 
-  async function ajustarStock() {
-    const data = { idPieza: document.getElementById('stkPieza').value, cantidad: document.getElementById('stkCant').value };
-    const res = await api('updateStock', data);
-    alert(res.message);
-    location.reload();
+  async function editOT(id) {
+    const est = prompt("Estado (Pendiente/En Marcha/Cerrada):");
+    const t = prompt("Horas trabajadas:");
+    if (est) { await api('updateOT', { id, estado: est, tiempo: t }); refresh(); }
   }
 
-  async function crearOT() {
-    const data = {
-      tipo: document.getElementById('admTipo').value,
-      activo: document.getElementById('admActivo').value,
-      descripcion: document.getElementById('admDesc').value,
-      asignado: document.getElementById('admAsignar').value
-    };
-    const res = await api('createOT', data);
-    alert(res.message);
+  async function updateStock() {
+    await api('updateStock', { id: val('stkItem'), cant: val('stkCant') });
+    clear(['stkCant']);
+    refresh();
   }
+
+  async function addAdmin(tabla) {
+    let fila = [];
+    if (tabla === 'Activos') fila = ["ACT-"+Date.now(), val('newActName'), "Planta"];
+    if (tabla === 'Stock') fila = ["STK-"+Date.now(), val('newStkName'), 0];
+    await api('manageAdmin', { tabla, fila });
+    clear(['newActName', 'newStkName']);
+    refresh();
+  }
+
+  function val(id) { return document.getElementById(id).value; }
+  function clear(ids) { ids.forEach(id => document.getElementById(id).value = ''); }
 </script>
 </body>
 </html>
