@@ -1,168 +1,303 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GMAO Fast 2026</title>
-  <style>
-    :root { --p: #2563eb; --s: #64748b; --bg: #f8fafc; }
-    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 10px; }
-    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-    input, select, textarea { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-    button { width: 100%; padding: 12px; background: var(--p); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-    button.del { background: #dc2626; margin-top: 5px; }
-    button.edit { background: #059669; }
-    .hidden { display: none; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
-    .header { display: flex; justify-content: space-between; align-items: center; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini GMAO - Operaciones</title>
+    <style>
+        :root {
+            --tradebe-blue: #003B5C;
+            --tradebe-green: #85C441;
+            --gray-light: #f4f7f6;
+            --gray-dark: #808080;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--gray-light);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            background-color: var(--tradebe-blue);
+            color: white;
+            width: 100%;
+            padding: 15px 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border-bottom: 4px solid var(--tradebe-green);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Utilidades Formulario */
+        input, select, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: var(--tradebe-green);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #6da332;
+        }
+
+        /* Dashboard */
+        #dashboard-section { display: none; }
+        
+        .role-badge {
+            display: inline-block;
+            background-color: var(--tradebe-blue);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-bottom: 15px;
+        }
+
+        /* Lista de Averías */
+        .ticket-card {
+            border: 1px solid #eee;
+            border-left: 5px solid var(--tradebe-blue);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background: #fafafa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ticket-info h4 { margin: 0 0 5px 0; }
+        .ticket-info p { margin: 0; font-size: 0.9em; color: #555; }
+        
+        .btn-action {
+            width: auto;
+            padding: 8px 15px;
+            margin: 0;
+        }
+
+        /* Estilos condicionales Mantenimiento */
+        .estado-gris { color: var(--gray-dark); }
+        .estado-negrita { font-weight: bold; color: black; }
+        
+        #loading { display: none; text-align: center; color: var(--tradebe-blue); font-weight: bold; }
+
+    </style>
 </head>
 <body>
 
-<div class="container">
-  <div id="loginPage">
-    <h2>GMAO Login</h2>
-    <input type="text" id="user" placeholder="Usuario">
-    <input type="password" id="pass" placeholder="Contraseña">
-    <button onclick="login()">Entrar</button>
-  </div>
+    <header>
+        <h2>Sistema GMAO</h2>
+    </header>
 
-  <div id="mainPage" class="hidden">
-    <div class="header">
-      <h3 id="welcome"></h3>
-      <button onclick="location.reload()" style="width:auto; padding:5px 10px; background:#666">Salir</button>
+    <div id="loading">Cargando, por favor espera...</div>
+
+    <div class="container" id="login-section">
+        <h3>Iniciar Sesión</h3>
+        <input type="text" id="username" placeholder="Usuario" autocomplete="off">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Entrar</button>
+        <p id="login-error" style="color: red; display: none;"></p>
     </div>
 
-    <div id="createOTSection" class="card">
-      <h4>Nueva Orden de Trabajo</h4>
-      <select id="otSector">
-        <option>Finder</option><option>Zurik</option><option>Steinert</option>
-        <option>Medios Densos</option><option>Molino</option><option>Maquinaria Movil</option>
-        <option>Planta</option><option>Otro</option>
-      </select>
-      <select id="otActivo"></select>
-      <textarea id="otObs" placeholder="Observaciones de la avería"></textarea>
-      <input type="datetime-local" id="otFecha">
-      <button onclick="saveOT()">Enviar OT</button>
+    <div class="container" id="dashboard-section">
+        <div>
+            Bienvenido, <span id="display-user" style="font-weight: bold;"></span> 
+            <span class="role-badge" id="display-role"></span>
+            <button onclick="logout()" style="width: auto; float: right; background-color: #dc3545; padding: 5px 10px;">Salir</button>
+        </div>
+        <hr>
+
+        <div id="form-produccion" style="display: none;">
+            <h3>Reportar Nueva Avería</h3>
+            <select id="select-area"><option value="">Selecciona Área</option></select>
+            <select id="select-maquina"><option value="">Selecciona Máquina</option></select>
+            <textarea id="desc-averia" rows="3" placeholder="Describe la avería en detalle..."></textarea>
+            <button onclick="enviarAveria()">Crear Parte</button>
+            <hr>
+        </div>
+
+        <h3>Listado de Averías</h3>
+        <div id="tickets-container"></div>
     </div>
 
-    <div class="card">
-      <h4>Listado de OTs</h4>
-      <div id="listOTs" style="overflow-x:auto"></div>
-    </div>
+    <script>
+        // ==========================================================
+        // INSERTE ENLACE APPSCRIPT AQUI ABAJO
+        // ==========================================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4TfGQ1yrpdC7n6-wfRT2YODY44if0Rd3K4y1zF2_40GRCmrPACPWCsmt46Nb0o2Rh/exec"; 
+        
+        let currentUser = "";
+        let currentRole = "";
 
-    <div id="stockSection" class="hidden card">
-      <h4>Gestión de Stock</h4>
-      <select id="stkItem"></select>
-      <input type="number" id="stkCant" placeholder="Cantidad (ej: -1)">
-      <button onclick="updateStock()">Ajustar Stock</button>
-    </div>
+        // Función base para comunicarse con Apps Script
+        async function fetchAPI(payload) {
+            document.getElementById('loading').style.display = 'block';
+            try {
+                // Usamos text/plain para evitar el preflight de CORS de los navegadores
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                document.getElementById('loading').style.display = 'none';
+                if (!result.success) throw new Error(result.error);
+                return result.data;
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                alert("Error: " + error.message);
+                throw error;
+            }
+        }
 
-    <div id="adminSection" class="hidden card">
-      <h4>Panel Administrador</h4>
-      <input type="text" id="newActName" placeholder="Nombre Nuevo Activo">
-      <button class="edit" onclick="addAdmin('Activos')">Crear Activo</button>
-      <input type="text" id="newStkName" placeholder="Nombre Nueva Pieza">
-      <button class="edit" onclick="addAdmin('Stock')" style="margin-top:10px">Crear Recambio</button>
-    </div>
-  </div>
-</div>
+        async function login() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            
+            try {
+                const data = await fetchAPI({ action: 'login', usuario: user, password: pass });
+                currentUser = user;
+                currentRole = data.rol;
+                
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                document.getElementById('display-user').innerText = currentUser;
+                document.getElementById('display-role').innerText = currentRole;
 
-<script>
-  const URL = "https://script.google.com/macros/s/AKfycby9C8T9bLyAkl_Gn_os5kyJ-lopvxckWM-PZyY4UZNdAqFYjJ55V9qYy4Sau22Wo_eZog/exec"; 
-  let session = { user: '', role: '' };
-  let db = {};
+                if (currentRole === 'Produccion') {
+                    document.getElementById('form-produccion').style.display = 'block';
+                }
 
-  async function api(action, data) {
-    const r = await fetch(URL, { method: 'POST', body: JSON.stringify({ action, data }) });
-    return r.json();
-  }
+                loadDashboard();
+            } catch (e) {
+                document.getElementById('login-error').innerText = e.message;
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
 
-  async function login() {
-    const res = await api('login', { user: val('user'), pass: val('pass') });
-    if (res.status === 'success') {
-      session = res;
-      document.getElementById('loginPage').classList.add('hidden');
-      document.getElementById('mainPage').classList.remove('hidden');
-      document.getElementById('welcome').innerText = "Hola, " + res.user;
-      refresh();
-    } else alert(res.message);
-  }
+        function logout() {
+            currentUser = ""; currentRole = "";
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('form-produccion').style.display = 'none';
+            document.getElementById('username').value = "";
+            document.getElementById('password').value = "";
+        }
 
-  async function refresh() {
-    db = await api('getData', {});
-    
-    // Llenar activos
-    const act = document.getElementById('otActivo');
-    act.innerHTML = db.activos.map(a => `<option>${a.Nombre_Activo}</option>`).join('');
+        async function loadDashboard() {
+            const data = await fetchAPI({ action: 'getData' });
+            
+            // Llenar selects si es Produccion
+            if (currentRole === 'Produccion') {
+                const sArea = document.getElementById('select-area');
+                const sMaquina = document.getElementById('select-maquina');
+                sArea.innerHTML = '<option value="">Selecciona Área</option>';
+                sMaquina.innerHTML = '<option value="">Selecciona Máquina</option>';
+                
+                data.areas.forEach(a => sArea.innerHTML += `<option value="${a}">${a}</option>`);
+                data.maquinas.forEach(m => sMaquina.innerHTML += `<option value="${m}">${m}</option>`);
+            }
 
-    // Llenar stock
-    const stk = document.getElementById('stkItem');
-    stk.innerHTML = db.stock.map(s => `<option value="${s.ID_Pieza}">${s.Nombre_Pieza} (${s.Cantidad})</option>`).join('');
+            renderTickets(data.tickets);
+        }
 
-    renderOTs();
-    
-    // Mostrar secciones por rol
-    if (session.role === 'admin') {
-      document.getElementById('stockSection').classList.remove('hidden');
-      document.getElementById('adminSection').classList.remove('hidden');
-    } else if (session.role === 'mantenimiento') {
-      document.getElementById('stockSection').classList.remove('hidden');
-    }
-  }
+        function renderTickets(tickets) {
+            const container = document.getElementById('tickets-container');
+            container.innerHTML = "";
 
-  function renderOTs() {
-    let html = `<table><tr><th>Activo</th><th>Estado</th><th>Acción</th></tr>`;
-    db.ots.forEach(ot => {
-      let btns = '';
-      if (session.role === 'mantenimiento' || session.role === 'admin') {
-        btns = `<button class="edit" onclick="editOT('${ot.ID_OT}')">Gestionar</button>`;
-      }
-      if (ot.Creador === session.user || session.role === 'admin') {
-        btns += `<button class="del" onclick="deleteOT('${ot.ID_OT}')">Borrar</button>`;
-      }
-      html += `<tr><td>${ot.Activo}</td><td>${ot.Estado}</td><td>${btns}</td></tr>`;
-    });
-    document.getElementById('listOTs').innerHTML = html + `</table>`;
-  }
+            if (tickets.length === 0) {
+                container.innerHTML = "<p>No hay averías registradas.</p>";
+                return;
+            }
 
-  async function saveOT() {
-    const data = { creador: session.user, sector: val('otSector'), activo: val('otActivo'), obs: val('otObs'), fecha: val('otFecha') };
-    await api('saveOT', data);
-    alert("Enviado");
-    clear(['otObs', 'otFecha']);
-    refresh();
-  }
+            tickets.forEach(t => {
+                let statusClass = "";
+                
+                // Lógica visual específica para Mantenimiento
+                if (currentRole === 'Mantenimiento') {
+                    if (t.estado === 'Pendiente') statusClass = "estado-gris";
+                    if (t.estado === 'Validada') statusClass = "estado-negrita";
+                }
 
-  async function deleteOT(id) {
-    if (confirm("¿Borrar OT?")) { await api('deleteOT', { id }); refresh(); }
-  }
+                let ticketHTML = `
+                    <div class="ticket-card ${statusClass}">
+                        <div class="ticket-info">
+                            <h4>${t.area} - ${t.maquina}</h4>
+                            <p>${t.descripcion}</p>
+                            <p><strong>Estado:</strong> ${t.estado} | <strong>Por:</strong> ${t.usuario}</p>
+                        </div>
+                `;
 
-  async function editOT(id) {
-    const est = prompt("Estado (Pendiente/En Marcha/Cerrada):");
-    const t = prompt("Horas trabajadas:");
-    if (est) { await api('updateOT', { id, estado: est, tiempo: t }); refresh(); }
-  }
+                // Lógica de botones según el rol
+                if (currentRole === 'Ingenieria' && t.estado === 'Pendiente') {
+                    ticketHTML += `<button class="btn-action" onclick="actualizarEstado(${t.id}, 'Validada')">Validar</button>`;
+                } else if (currentRole === 'Mantenimiento' && t.estado === 'Validada') {
+                    ticketHTML += `<button class="btn-action" onclick="actualizarEstado(${t.id}, 'Cerrada')">Cerrar</button>`;
+                }
 
-  async function updateStock() {
-    await api('updateStock', { id: val('stkItem'), cant: val('stkCant') });
-    clear(['stkCant']);
-    refresh();
-  }
+                ticketHTML += `</div>`;
+                container.innerHTML += ticketHTML;
+            });
+        }
 
-  async function addAdmin(tabla) {
-    let fila = [];
-    if (tabla === 'Activos') fila = ["ACT-"+Date.now(), val('newActName'), "Planta"];
-    if (tabla === 'Stock') fila = ["STK-"+Date.now(), val('newStkName'), 0];
-    await api('manageAdmin', { tabla, fila });
-    clear(['newActName', 'newStkName']);
-    refresh();
-  }
+        async function enviarAveria() {
+            const area = document.getElementById('select-area').value;
+            const maquina = document.getElementById('select-maquina').value;
+            const desc = document.getElementById('desc-averia').value;
 
-  function val(id) { return document.getElementById(id).value; }
-  function clear(ids) { ids.forEach(id => document.getElementById(id).value = ''); }
-</script>
+            if (!area || !maquina || !desc) {
+                alert("Por favor, rellena todos los campos.");
+                return;
+            }
+
+            await fetchAPI({
+                action: 'createTicket',
+                area: area,
+                maquina: maquina,
+                descripcion: desc,
+                usuario: currentUser
+            });
+
+            document.getElementById('desc-averia').value = ""; // limpiar
+            loadDashboard(); // recargar lista
+        }
+
+        async function actualizarEstado(id, nuevoEstado) {
+            if(confirm(`¿Estás seguro de marcar el parte como ${nuevoEstado}?`)) {
+                await fetchAPI({
+                    action: 'updateTicket',
+                    id: id,
+                    nuevoEstado: nuevoEstado
+                });
+                loadDashboard();
+            }
+        }
+    </script>
 </body>
 </html>
