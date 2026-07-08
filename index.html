@@ -158,10 +158,10 @@
             <label for="select-area">Área:</label>
             <select id="select-area"><option value="">Selecciona Área</option></select>
             
-            <label for="select-maquina">Máquina:</label>
+            <label for="select-maquina">Máquina / Equipo:</label>
             <select id="select-maquina"><option value="">Selecciona Máquina</option></select>
             
-            <label for="desc-averia">Observaciones / Descripción:</label>
+            <label for="desc-averia">Observaciones / Comentarios:</label>
             <textarea id="desc-averia" rows="3" placeholder="Escribe aquí las observaciones del parte..."></textarea>
             
             <div style="display:flex; gap:10px;">
@@ -179,14 +179,13 @@
         // ==========================================================
         // INSERTE ENLACE APPSCRIPT AQUI ABAJO
         // ==========================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0vjj_1GVp8-mEXxCyWcTL9TfM1Ooz9k1sThvefKeh-0MxELchMDyQq0SHyr19oFJE/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhE56JqQxnGycmajSos517IplVTX0me-F8715Svr-PyY7dEz4kqjm45-_8PI1mTf7C/exec"; 
         
         let currentUser = "";
         let currentRole = "";
         let globalAreas = [];
         let globalMaquinas = [];
 
-        // Función auxiliar para normalizar textos (pasa a minúsculas y quita acentos)
         function normalizarTexto(str) {
             if (!str) return "";
             return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -218,16 +217,13 @@
             try {
                 const data = await fetchAPI({ action: 'login', usuario: user, password: pass });
                 currentUser = user;
-                
-                // Normalización de seguridad para el rol
                 currentRole = normalizarTexto(data.rol);
                 
                 document.getElementById('login-section').style.display = 'none';
                 document.getElementById('dashboard-section').style.display = 'block';
                 document.getElementById('display-user').innerText = currentUser;
-                document.getElementById('display-role').innerText = data.rol; // Muestra el texto original del Excel
+                document.getElementById('display-role').innerText = data.rol;
 
-                // Validación flexible de rol para Producción
                 if (currentRole === 'produccion') {
                     document.getElementById('form-produccion').style.display = 'block';
                 } else {
@@ -285,13 +281,13 @@
             tickets.forEach(t => {
                 let statusClass = "";
                 
-                // Formateo visual condicional solicitado para Mantenimiento
+                // Formateo visual para Mantenimiento (Pendiente = Gris, Validada = Negrita)
                 if (currentRole === 'mantenimiento') {
                     if (t.estado === 'Pendiente') statusClass = "estado-gris";
                     if (t.estado === 'Validada') statusClass = "estado-negrita";
                 }
 
-                // Generación de la línea de texto solicitada: Operario - Área - Máquina - Observaciones
+                // Renderizado siguiendo tu orden: Operario - Área - Máquina - Observaciones
                 let ticketHTML = `
                     <div class="ticket-row ${statusClass}">
                         <div class="ticket-content">
@@ -301,7 +297,7 @@
                         <div class="ticket-actions">
                 `;
 
-                // Acciones exclusivas del perfil de Producción (Editar / Borrar)
+                // Acciones exclusivas de Producción (Editar / Borrar)
                 if (currentRole === 'produccion') {
                     ticketHTML += `
                         <button class="btn-small btn-edit" onclick="prepararEdicion(${t.id}, '${t.area}', '${t.maquina}', \`${t.descripcion}\`)">Editar</button>
@@ -338,7 +334,6 @@
             }
 
             if (id) {
-                // Modo Edición
                 await fetchAPI({
                     action: 'editTicketContent',
                     id: id,
@@ -348,7 +343,6 @@
                 });
                 cancelarEdicion();
             } else {
-                // Modo Registro Nuevo
                 await fetchAPI({
                     action: 'createTicket',
                     area: area,
@@ -362,20 +356,21 @@
             loadDashboard();
         }
 
-        function prepararEdicion(id, area, maquina, descripcion) {
+        function viajarAElemento(id, area, maquina, descripcion) {
             document.getElementById('form-title').innerText = "Editar Avería";
             document.getElementById('edit-ticket-id').value = id;
-            
             poblarDesplegables();
-            
             document.getElementById('select-area').value = area;
             document.getElementById('select-maquina').value = maquina;
             document.getElementById('desc-averia').value = descripcion;
-            
             document.getElementById('btn-submit-form').innerText = "Guardar Cambios";
             document.getElementById('btn-cancel-edit').style.display = "inline-block";
-            
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Alias para compatibilidad de eventos
+        function prepararEdicion(id, area, maquina, descripcion) {
+            viajarAElemento(id, area, maquina, descripcion);
         }
 
         function cancelarEdicion() {
