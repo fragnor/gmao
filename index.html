@@ -186,6 +186,12 @@
         let globalAreas = [];
         let globalMaquinas = [];
 
+        // Función auxiliar para normalizar textos (pasa a minúsculas y quita acentos)
+        function normalizarTexto(str) {
+            if (!str) return "";
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        }
+
         async function fetchAPI(payload) {
             document.getElementById('loading').style.display = 'block';
             try {
@@ -212,14 +218,17 @@
             try {
                 const data = await fetchAPI({ action: 'login', usuario: user, password: pass });
                 currentUser = user;
-                currentRole = data.rol;
+                
+                // Normalización de seguridad para el rol
+                currentRole = normalizarTexto(data.rol);
                 
                 document.getElementById('login-section').style.display = 'none';
                 document.getElementById('dashboard-section').style.display = 'block';
                 document.getElementById('display-user').innerText = currentUser;
-                document.getElementById('display-role').innerText = currentRole;
+                document.getElementById('display-role').innerText = data.rol; // Muestra el texto original del Excel
 
-                if (currentRole === 'Produccion') {
+                // Validación flexible de rol para Producción
+                if (currentRole === 'produccion') {
                     document.getElementById('form-produccion').style.display = 'block';
                 } else {
                     document.getElementById('form-produccion').style.display = 'none';
@@ -246,7 +255,7 @@
             globalAreas = data.areas;
             globalMaquinas = data.maquinas;
             
-            if (currentRole === 'Produccion') {
+            if (currentRole === 'produccion') {
                 poblarDesplegables();
             }
 
@@ -277,7 +286,7 @@
                 let statusClass = "";
                 
                 // Formateo visual condicional solicitado para Mantenimiento
-                if (currentRole === 'Mantenimiento') {
+                if (currentRole === 'mantenimiento') {
                     if (t.estado === 'Pendiente') statusClass = "estado-gris";
                     if (t.estado === 'Validada') statusClass = "estado-negrita";
                 }
@@ -293,7 +302,7 @@
                 `;
 
                 // Acciones exclusivas del perfil de Producción (Editar / Borrar)
-                if (currentRole === 'Produccion') {
+                if (currentRole === 'produccion') {
                     ticketHTML += `
                         <button class="btn-small btn-edit" onclick="prepararEdicion(${t.id}, '${t.area}', '${t.maquina}', \`${t.descripcion}\`)">Editar</button>
                         <button class="btn-small btn-delete" onclick="borrarAveria(${t.id})">Borrar</button>
@@ -301,11 +310,11 @@
                 }
 
                 // Validación de Ingeniería
-                if (currentRole === 'Ingenieria' && t.estado === 'Pendiente') {
+                if (currentRole === 'ingenieria' && t.estado === 'Pendiente') {
                     ticketHTML += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Validada')">Validar</button>`;
                 } 
                 // Cierre de Mantenimiento
-                else if (currentRole === 'Mantenimiento' && t.estado === 'Validada') {
+                else if (currentRole === 'mantenimiento' && t.estado === 'Validada') {
                     ticketHTML += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Cerrada')">Cerrar</button>`;
                 }
 
