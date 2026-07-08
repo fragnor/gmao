@@ -12,6 +12,7 @@
             --gray-dark: #808080;
             --danger-red: #dc3545;
             --warning-orange: #ffc107;
+            --mante-bg-val: #ffffff;
         }
 
         body {
@@ -80,6 +81,17 @@
             margin-bottom: 15px;
         }
 
+        /* Sección de separadores visuales */
+        .section-separator {
+            background-color: #e2ebf0;
+            padding: 8px 12px;
+            margin: 20px 0 10px 0;
+            font-weight: bold;
+            color: var(--tradebe-blue);
+            border-left: 5px solid var(--tradebe-blue);
+            border-radius: 4px;
+        }
+
         /* Lista estilo Fila solicitado */
         .ticket-row {
             border-bottom: 1px solid #eee;
@@ -89,10 +101,6 @@
             align-items: center;
             flex-wrap: wrap;
             background: #fff;
-        }
-
-        .ticket-row:nth-child(even) {
-            background: #fafafa;
         }
 
         .ticket-content {
@@ -120,9 +128,9 @@
         .btn-blue { background-color: var(--tradebe-blue); }
         .btn-blue:hover { background-color: #00263e; }
 
-        /* Estilos visuales para Mantenimiento */
-        .estado-gris { color: var(--gray-dark); }
-        .estado-negrita { font-weight: bold; color: black; }
+        /* Estilos visuales condicionales */
+        .estado-gris { color: var(--gray-dark); background: #fdfdfd; }
+        .estado-negrita { font-weight: bold; color: black; background: #fff; border-left: 4px solid var(--tradebe-green); }
         
         #loading { display: none; text-align: center; color: var(--tradebe-blue); font-weight: bold; padding: 10px; }
     </style>
@@ -171,15 +179,35 @@
             <hr style="margin: 20px 0;">
         </div>
 
-        <h3>Listado de Averías (De más nuevo a más viejo)</h3>
-        <div id="tickets-container" style="border: 1px solid #ddd; border-radius: 4px;"></div>
+        <div id="form-mantenimiento" style="display: none; background-color: #f0f7f4; padding: 15px; border-radius: 6px; border: 1px solid var(--tradebe-green); margin-bottom: 20px;">
+            <h3>Ejecutar e Introducir Datos de OT</h3>
+            <input type="hidden" id="mante-ticket-id" value="">
+            <p><strong>OT Seleccionada:</strong> <span id="mante-ot-info">Ninguna</span></p>
+            
+            <label for="mante-horas">Horas de Trabajo:</label>
+            <input type="number" id="mante-horas" step="0.5" placeholder="Ej: 2.5">
+            
+            <label for="mante-materiales">Material Empleado:</label>
+            <textarea id="mante-materiales" rows="2" placeholder="Describa los repuestos o materiales usados..."></textarea>
+            
+            <label for="mante-observaciones">Observaciones Técnico / Resolución:</label>
+            <textarea id="mante-observaciones" rows="3" placeholder="Detalles de la intervención técnica..."></textarea>
+            
+            <div style="display:flex; gap:10px;">
+                <button onclick="enviarCierreOT()" style="background-color: var(--tradebe-blue);">Cerrar y Guardar OT</button>
+                <button onclick="cancelarCierreOT()" style="background-color: var(--gray-dark); width:auto;">Cancelar</button>
+            </div>
+        </div>
+
+        <h3 id="titulo-listado">Listado de Órdenes de Trabajo</h3>
+        <div id="tickets-container" style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden;"></div>
     </div>
 
     <script>
         // ==========================================================
         // INSERTE ENLACE APPSCRIPT AQUI ABAJO
         // ==========================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhE56JqQxnGycmajSos517IplVTX0me-F8715Svr-PyY7dEz4kqjm45-_8PI1mTf7C/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBbwqZuWo87Rr8tailk8colIYurU85i4CVLy5egpCr2bK6vlEFA0r0qXjHGT67_Yij/exec"; 
         
         let currentUser = "";
         let currentRole = "";
@@ -229,6 +257,8 @@
                 } else {
                     document.getElementById('form-produccion').style.display = 'none';
                 }
+                
+                document.getElementById('form-mantenimiento').style.display = 'none';
 
                 loadDashboard();
             } catch (e) {
@@ -244,6 +274,7 @@
             document.getElementById('username').value = "";
             document.getElementById('password').value = "";
             cancelarEdicion();
+            cancelarCierreOT();
         }
 
         async function loadDashboard() {
@@ -274,52 +305,66 @@
             container.innerHTML = "";
 
             if (tickets.length === 0) {
-                container.innerHTML = "<p style='padding:15px; margin:0;'>No hay averías registradas en este momento.</p>";
+                container.innerHTML = "<p style='padding:15px; margin:0;'>No hay OTs registradas.</p>";
                 return;
             }
 
-            tickets.forEach(t => {
-                let statusClass = "";
-                
-                // Formateo visual para Mantenimiento (Pendiente = Gris, Validada = Negrita)
-                if (currentRole === 'mantenimiento') {
-                    if (t.estado === 'Pendiente') statusClass = "estado-gris";
-                    if (t.estado === 'Validada') statusClass = "estado-negrita";
+            // Lógica específica de Mantenimiento: Separar validadas de pendientes
+            if (currentRole === 'mantenimiento') {
+                let validadas = tickets.filter(t => t.estado === 'Validada');
+                let pendientes = tickets.filter(t => t.estado === 'Pendiente');
+                let cerradas = tickets.filter(t => t.estado === 'Cerrada');
+
+                container.innerHTML += `<div class="section-separator">📋 OTs VALIDADAS (Por Gestionar)</div>`;
+                if(validadas.length === 0) container.innerHTML += "<p style='padding:10px; margin:0; font-size:0.9em; color:#666;'>No hay órdenes validadas pendientes.</p>";
+                validadas.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-negrita"));
+
+                container.innerHTML += `<div class="section-separator">⏳ OTs PENDIENTES DE VALIDACIÓN</div>`;
+                if(pendientes.length === 0) container.innerHTML += "<p style='padding:10px; margin:0; font-size:0.9em; color:#666;'>No hay órdenes pendientes de validación.</p>";
+                pendientes.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-gris"));
+
+                if(cerradas.length > 0) {
+                    container.innerHTML += `<div class="section-separator">✅ OTs HISTÓRICAS CERRADAS</div>`;
+                    cerradas.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-gris"));
                 }
+            } else {
+                // Para Producción e Ingeniería se muestra la lista corrida ordenada por fecha
+                tickets.forEach(t => {
+                    container.innerHTML += htmlFilaTicket(t, "");
+                });
+            }
+        }
 
-                // Renderizado siguiendo tu orden: Operario - Área - Máquina - Observaciones
-                let ticketHTML = `
-                    <div class="ticket-row ${statusClass}">
-                        <div class="ticket-content">
-                            <strong>${t.usuario}</strong> - ${t.area} - ${t.maquina} - <em>"${t.descripcion}"</em> 
-                            <br><small style="color:#777;">Estado actual: <strong>${t.estado}</strong></small>
-                        </div>
-                        <div class="ticket-actions">
-                `;
-
-                // Acciones exclusivas de Producción (Editar / Borrar)
-                if (currentRole === 'produccion') {
-                    ticketHTML += `
-                        <button class="btn-small btn-edit" onclick="prepararEdicion(${t.id}, '${t.area}', '${t.maquina}', \`${t.descripcion}\`)">Editar</button>
-                        <button class="btn-small btn-delete" onclick="borrarAveria(${t.id})">Borrar</button>
-                    `;
-                }
-
-                // Validación de Ingeniería
-                if (currentRole === 'ingenieria' && t.estado === 'Pendiente') {
-                    ticketHTML += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Validada')">Validar</button>`;
-                } 
-                // Cierre de Mantenimiento
-                else if (currentRole === 'mantenimiento' && t.estado === 'Validada') {
-                    ticketHTML += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Cerrada')">Cerrar</button>`;
-                }
-
-                ticketHTML += `
-                        </div>
+        function htmlFilaTicket(t, statusClass) {
+            let html = `
+                <div class="ticket-row ${statusClass}">
+                    <div class="ticket-content">
+                        <strong>${t.usuario}</strong> - ${t.area} - ${t.maquina} - <em>"${t.descripcion}"</em>
+                        ${t.horas ? `<br><small style="color:var(--tradebe-blue);">🔧 <strong>Intervención:</strong> ${t.horas}h | <strong>Material:</strong> ${t.materiales} | <strong>Obs:</strong> ${t.obsMante}</small>` : ''}
+                        <br><small style="color:#677;">Estado: <strong>${t.estado}</strong></small>
                     </div>
+                    <div class="ticket-actions">
+            `;
+
+            if (currentRole === 'produccion' && t.estado === 'Pendiente') {
+                html += `
+                    <button class="btn-small btn-edit" onclick="prepararEdicion(${t.id}, '${t.area}', '${t.maquina}', \`${t.descripcion}\`)">Editar</button>
+                    <button class="btn-small btn-delete" onclick="borrarAveria(${t.id})">Borrar</button>
                 `;
-                container.innerHTML += ticketHTML;
-            });
+            }
+
+            if (currentRole === 'ingenieria' && t.estado === 'Pendiente') {
+                html += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Validada')">Validar</button>`;
+            } 
+            else if (currentRole === 'mantenimiento' && t.estado === 'Validada') {
+                html += `<button class="btn-small btn-green" style="background-color:var(--tradebe-green);" onclick="abrirFormularioOT(${t.id}, '${t.area}', '${t.maquina}')">Gestionar OT</button>`;
+            }
+
+            html += `
+                    </div>
+                </div>
+            `;
+            return html;
         }
 
         async function guardarAveria() {
@@ -356,7 +401,7 @@
             loadDashboard();
         }
 
-        function viajarAElemento(id, area, maquina, descripcion) {
+        function prepararEdicion(id, area, maquina, descripcion) {
             document.getElementById('form-title').innerText = "Editar Avería";
             document.getElementById('edit-ticket-id').value = id;
             poblarDesplegables();
@@ -367,11 +412,6 @@
             document.getElementById('btn-cancel-edit').style.display = "inline-block";
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        
-        // Alias para compatibilidad de eventos
-        function prepararEdicion(id, area, maquina, descripcion) {
-            viajarAElemento(id, area, maquina, descripcion);
-        }
 
         function cancelarEdicion() {
             document.getElementById('form-title').innerText = "Reportar Nueva Avería";
@@ -381,6 +421,47 @@
             document.getElementById('desc-averia').value = "";
             document.getElementById('btn-submit-form').innerText = "Crear Parte";
             document.getElementById('btn-cancel-edit').style.display = "none";
+        }
+
+        /* Funciones de Cierre de OT para Mantenimiento */
+        function abrirFormularioOT(id, area, maquina) {
+            document.getElementById('form-mantenimiento').style.display = "block";
+            document.getElementById('mante-ticket-id').value = id;
+            document.getElementById('mante-ot-info').innerText = `OT-${id} en ${area} (${maquina})`;
+            
+            document.getElementById('mante-horas').value = "";
+            document.getElementById('mante-materiales').value = "";
+            document.getElementById('mante-observaciones').value = "";
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelarCierreOT() {
+            document.getElementById('form-mantenimiento').style.display = "none";
+            document.getElementById('mante-ticket-id').value = "";
+        }
+
+        async function enviarCierreOT() {
+            const id = document.getElementById('mante-ticket-id').value;
+            const horas = document.getElementById('mante-horas').value;
+            const mat = document.getElementById('mante-materiales').value;
+            const obs = document.getElementById('mante-observaciones').value;
+
+            if(!horas || !mat || !obs) {
+                alert("Por favor, rellena las horas, materiales y observaciones técnicos para el histórico.");
+                return;
+            }
+
+            await fetchAPI({
+                action: 'closeOT',
+                id: id,
+                horas: horas,
+                materiales: mat,
+                obsMante: obs
+            });
+
+            cancelarCierreOT();
+            loadDashboard();
         }
 
         async function borrarAveria(id) {
