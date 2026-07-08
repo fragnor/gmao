@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini GMAO - Operaciones</title>
+    <title>Mini GMAO - Tradebe</title>
     <style>
         :root {
             --tradebe-blue: #003B5C;
             --tradebe-green: #85C441;
             --gray-light: #f4f7f6;
             --gray-dark: #808080;
+            --danger-red: #dc3545;
+            --warning-orange: #ffc107;
         }
 
         body {
@@ -34,16 +36,16 @@
         }
 
         .container {
-            width: 90%;
-            max-width: 800px;
+            width: 95%;
+            max-width: 900px;
             margin-top: 20px;
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-sizing: border-box;
         }
 
-        /* Utilidades Formulario */
         input, select, textarea, button {
             width: 100%;
             padding: 10px;
@@ -66,7 +68,6 @@
             background-color: #6da332;
         }
 
-        /* Dashboard */
         #dashboard-section { display: none; }
         
         .role-badge {
@@ -79,43 +80,60 @@
             margin-bottom: 15px;
         }
 
-        /* Lista de Averías */
-        .ticket-card {
-            border: 1px solid #eee;
-            border-left: 5px solid var(--tradebe-blue);
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            background: #fafafa;
+        /* Lista estilo Fila solicitado */
+        .ticket-row {
+            border-bottom: 1px solid #eee;
+            padding: 12px 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            background: #fff;
         }
 
-        .ticket-info h4 { margin: 0 0 5px 0; }
-        .ticket-info p { margin: 0; font-size: 0.9em; color: #555; }
-        
-        .btn-action {
+        .ticket-row:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .ticket-content {
+            flex: 1;
+            min-width: 280px;
+            font-size: 0.95em;
+        }
+
+        .ticket-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
             width: auto;
-            padding: 8px 15px;
+            padding: 6px 12px;
             margin: 0;
+            font-size: 0.85em;
         }
 
-        /* Estilos condicionales Mantenimiento */
+        .btn-edit { background-color: var(--warning-orange); color: #333; }
+        .btn-edit:hover { background-color: #e0a800; }
+        .btn-delete { background-color: var(--danger-red); }
+        .btn-delete:hover { background-color: #bd2130; }
+        .btn-blue { background-color: var(--tradebe-blue); }
+        .btn-blue:hover { background-color: #00263e; }
+
+        /* Estilos visuales para Mantenimiento */
         .estado-gris { color: var(--gray-dark); }
         .estado-negrita { font-weight: bold; color: black; }
         
-        #loading { display: none; text-align: center; color: var(--tradebe-blue); font-weight: bold; }
-
+        #loading { display: none; text-align: center; color: var(--tradebe-blue); font-weight: bold; padding: 10px; }
     </style>
 </head>
 <body>
 
     <header>
-        <h2>Sistema GMAO</h2>
+        <h2>Sistema GMAO - Tradebe Environmental Services</h2>
     </header>
 
-    <div id="loading">Cargando, por favor espera...</div>
+    <div id="loading">Conectando con el servidor...</div>
 
     <div class="container" id="login-section">
         <h3>Iniciar Sesión</h3>
@@ -127,39 +145,50 @@
 
     <div class="container" id="dashboard-section">
         <div>
-            Bienvenido, <span id="display-user" style="font-weight: bold;"></span> 
+            Usuario: <span id="display-user" style="font-weight: bold;"></span> 
             <span class="role-badge" id="display-role"></span>
-            <button onclick="logout()" style="width: auto; float: right; background-color: #dc3545; padding: 5px 10px;">Salir</button>
+            <button onclick="logout()" style="width: auto; float: right; background-color: var(--danger-red); padding: 5px 10px; margin: 0;">Salir</button>
         </div>
-        <hr>
+        <hr style="margin: 15px 0;">
 
         <div id="form-produccion" style="display: none;">
-            <h3>Reportar Nueva Avería</h3>
+            <h3 id="form-title">Reportar Nueva Avería</h3>
+            <input type="hidden" id="edit-ticket-id" value="">
+            
+            <label for="select-area">Área:</label>
             <select id="select-area"><option value="">Selecciona Área</option></select>
+            
+            <label for="select-maquina">Máquina:</label>
             <select id="select-maquina"><option value="">Selecciona Máquina</option></select>
-            <textarea id="desc-averia" rows="3" placeholder="Describe la avería en detalle..."></textarea>
-            <button onclick="enviarAveria()">Crear Parte</button>
-            <hr>
+            
+            <label for="desc-averia">Observaciones / Descripción:</label>
+            <textarea id="desc-averia" rows="3" placeholder="Escribe aquí las observaciones del parte..."></textarea>
+            
+            <div style="display:flex; gap:10px;">
+                <button id="btn-submit-form" onclick="guardarAveria()">Crear Parte</button>
+                <button id="btn-cancel-edit" onclick="cancelarEdicion()" style="background-color:var(--gray-dark); display:none; width:auto;">Cancelar</button>
+            </div>
+            <hr style="margin: 20px 0;">
         </div>
 
-        <h3>Listado de Averías</h3>
-        <div id="tickets-container"></div>
+        <h3>Listado de Averías (De más nuevo a más viejo)</h3>
+        <div id="tickets-container" style="border: 1px solid #ddd; border-radius: 4px;"></div>
     </div>
 
     <script>
         // ==========================================================
         // INSERTE ENLACE APPSCRIPT AQUI ABAJO
         // ==========================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqkflql1UKOeDI23H4bb48pPmrA4JGiWy2zHSL_7gHx0-abzNKwI-2QzWaXWJR-Emk/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0vjj_1GVp8-mEXxCyWcTL9TfM1Ooz9k1sThvefKeh-0MxELchMDyQq0SHyr19oFJE/exec"; 
         
         let currentUser = "";
         let currentRole = "";
+        let globalAreas = [];
+        let globalMaquinas = [];
 
-        // Función base para comunicarse con Apps Script
         async function fetchAPI(payload) {
             document.getElementById('loading').style.display = 'block';
             try {
-                // Usamos text/plain para evitar el preflight de CORS de los navegadores
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -171,7 +200,7 @@
                 return result.data;
             } catch (error) {
                 document.getElementById('loading').style.display = 'none';
-                alert("Error: " + error.message);
+                alert("Error de comunicación: " + error.message);
                 throw error;
             }
         }
@@ -192,6 +221,8 @@
 
                 if (currentRole === 'Produccion') {
                     document.getElementById('form-produccion').style.display = 'block';
+                } else {
+                    document.getElementById('form-produccion').style.display = 'none';
                 }
 
                 loadDashboard();
@@ -205,26 +236,32 @@
             currentUser = ""; currentRole = "";
             document.getElementById('login-section').style.display = 'block';
             document.getElementById('dashboard-section').style.display = 'none';
-            document.getElementById('form-produccion').style.display = 'none';
             document.getElementById('username').value = "";
             document.getElementById('password').value = "";
+            cancelarEdicion();
         }
 
         async function loadDashboard() {
             const data = await fetchAPI({ action: 'getData' });
+            globalAreas = data.areas;
+            globalMaquinas = data.maquinas;
             
-            // Llenar selects si es Produccion
             if (currentRole === 'Produccion') {
-                const sArea = document.getElementById('select-area');
-                const sMaquina = document.getElementById('select-maquina');
-                sArea.innerHTML = '<option value="">Selecciona Área</option>';
-                sMaquina.innerHTML = '<option value="">Selecciona Máquina</option>';
-                
-                data.areas.forEach(a => sArea.innerHTML += `<option value="${a}">${a}</option>`);
-                data.maquinas.forEach(m => sMaquina.innerHTML += `<option value="${m}">${m}</option>`);
+                poblarDesplegables();
             }
 
             renderTickets(data.tickets);
+        }
+
+        function poblarDesplegables() {
+            const sArea = document.getElementById('select-area');
+            const sMaquina = document.getElementById('select-maquina');
+            
+            sArea.innerHTML = '<option value="">Selecciona Área</option>';
+            sMaquina.innerHTML = '<option value="">Selecciona Máquina</option>';
+            
+            globalAreas.forEach(a => sArea.innerHTML += `<option value="${a}">${a}</option>`);
+            globalMaquinas.forEach(m => sMaquina.innerHTML += `<option value="${m}">${m}</option>`);
         }
 
         function renderTickets(tickets) {
@@ -232,69 +269,126 @@
             container.innerHTML = "";
 
             if (tickets.length === 0) {
-                container.innerHTML = "<p>No hay averías registradas.</p>";
+                container.innerHTML = "<p style='padding:15px; margin:0;'>No hay averías registradas en este momento.</p>";
                 return;
             }
 
             tickets.forEach(t => {
                 let statusClass = "";
                 
-                // Lógica visual específica para Mantenimiento
+                // Formateo visual condicional solicitado para Mantenimiento
                 if (currentRole === 'Mantenimiento') {
                     if (t.estado === 'Pendiente') statusClass = "estado-gris";
                     if (t.estado === 'Validada') statusClass = "estado-negrita";
                 }
 
+                // Generación de la línea de texto solicitada: Operario - Área - Máquina - Observaciones
                 let ticketHTML = `
-                    <div class="ticket-card ${statusClass}">
-                        <div class="ticket-info">
-                            <h4>${t.area} - ${t.maquina}</h4>
-                            <p>${t.descripcion}</p>
-                            <p><strong>Estado:</strong> ${t.estado} | <strong>Por:</strong> ${t.usuario}</p>
+                    <div class="ticket-row ${statusClass}">
+                        <div class="ticket-content">
+                            <strong>${t.usuario}</strong> - ${t.area} - ${t.maquina} - <em>"${t.descripcion}"</em> 
+                            <br><small style="color:#777;">Estado actual: <strong>${t.estado}</strong></small>
                         </div>
+                        <div class="ticket-actions">
                 `;
 
-                // Lógica de botones según el rol
-                if (currentRole === 'Ingenieria' && t.estado === 'Pendiente') {
-                    ticketHTML += `<button class="btn-action" onclick="actualizarEstado(${t.id}, 'Validada')">Validar</button>`;
-                } else if (currentRole === 'Mantenimiento' && t.estado === 'Validada') {
-                    ticketHTML += `<button class="btn-action" onclick="actualizarEstado(${t.id}, 'Cerrada')">Cerrar</button>`;
+                // Acciones exclusivas del perfil de Producción (Editar / Borrar)
+                if (currentRole === 'Produccion') {
+                    ticketHTML += `
+                        <button class="btn-small btn-edit" onclick="prepararEdicion(${t.id}, '${t.area}', '${t.maquina}', \`${t.descripcion}\`)">Editar</button>
+                        <button class="btn-small btn-delete" onclick="borrarAveria(${t.id})">Borrar</button>
+                    `;
                 }
 
-                ticketHTML += `</div>`;
+                // Validación de Ingeniería
+                if (currentRole === 'Ingenieria' && t.estado === 'Pendiente') {
+                    ticketHTML += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Validada')">Validar</button>`;
+                } 
+                // Cierre de Mantenimiento
+                else if (currentRole === 'Mantenimiento' && t.estado === 'Validada') {
+                    ticketHTML += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Cerrada')">Cerrar</button>`;
+                }
+
+                ticketHTML += `
+                        </div>
+                    </div>
+                `;
                 container.innerHTML += ticketHTML;
             });
         }
 
-        async function enviarAveria() {
+        async function guardarAveria() {
+            const id = document.getElementById('edit-ticket-id').value;
             const area = document.getElementById('select-area').value;
             const maquina = document.getElementById('select-maquina').value;
             const desc = document.getElementById('desc-averia').value;
 
             if (!area || !maquina || !desc) {
-                alert("Por favor, rellena todos los campos.");
+                alert("Por favor, complete todos los campos.");
                 return;
             }
 
-            await fetchAPI({
-                action: 'createTicket',
-                area: area,
-                maquina: maquina,
-                descripcion: desc,
-                usuario: currentUser
-            });
+            if (id) {
+                // Modo Edición
+                await fetchAPI({
+                    action: 'editTicketContent',
+                    id: id,
+                    area: area,
+                    maquina: maquina,
+                    descripcion: desc
+                });
+                cancelarEdicion();
+            } else {
+                // Modo Registro Nuevo
+                await fetchAPI({
+                    action: 'createTicket',
+                    area: area,
+                    maquina: maquina,
+                    descripcion: desc,
+                    usuario: currentUser
+                });
+                document.getElementById('desc-averia').value = "";
+            }
 
-            document.getElementById('desc-averia').value = ""; // limpiar
-            loadDashboard(); // recargar lista
+            loadDashboard();
         }
 
-        async function actualizarEstado(id, nuevoEstado) {
-            if(confirm(`¿Estás seguro de marcar el parte como ${nuevoEstado}?`)) {
-                await fetchAPI({
-                    action: 'updateTicket',
-                    id: id,
-                    nuevoEstado: nuevoEstado
-                });
+        function prepararEdicion(id, area, maquina, descripcion) {
+            document.getElementById('form-title').innerText = "Editar Avería";
+            document.getElementById('edit-ticket-id').value = id;
+            
+            poblarDesplegables();
+            
+            document.getElementById('select-area').value = area;
+            document.getElementById('select-maquina').value = maquina;
+            document.getElementById('desc-averia').value = descripcion;
+            
+            document.getElementById('btn-submit-form').innerText = "Guardar Cambios";
+            document.getElementById('btn-cancel-edit').style.display = "inline-block";
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelarEdicion() {
+            document.getElementById('form-title').innerText = "Reportar Nueva Avería";
+            document.getElementById('edit-ticket-id').value = "";
+            document.getElementById('select-area').value = "";
+            document.getElementById('select-maquina').value = "";
+            document.getElementById('desc-averia').value = "";
+            document.getElementById('btn-submit-form').innerText = "Crear Parte";
+            document.getElementById('btn-cancel-edit').style.display = "none";
+        }
+
+        async function borrarAveria(id) {
+            if (confirm("¿Estás seguro de que deseas eliminar este parte de avería permanentemente?")) {
+                await fetchAPI({ action: 'deleteTicket', id: id });
+                loadDashboard();
+            }
+        }
+
+        async function cambiarEstado(id, nuevoEstado) {
+            if (confirm(`¿Confirmas cambiar el estado a ${nuevoEstado}?`)) {
+                await fetchAPI({ action: 'updateTicketStatus', id: id, nuevoEstado: nuevoEstado });
                 loadDashboard();
             }
         }
