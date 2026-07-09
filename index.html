@@ -12,7 +12,6 @@
             --gray-dark: #808080;
             --danger-red: #dc3545;
             --warning-orange: #ffc107;
-            --mante-bg-val: #ffffff;
         }
 
         body {
@@ -81,7 +80,6 @@
             margin-bottom: 15px;
         }
 
-        /* Sección de separadores visuales */
         .section-separator {
             background-color: #e2ebf0;
             padding: 8px 12px;
@@ -92,7 +90,6 @@
             border-radius: 4px;
         }
 
-        /* Lista estilo Fila solicitado */
         .ticket-row {
             border-bottom: 1px solid #eee;
             padding: 12px 8px;
@@ -128,7 +125,6 @@
         .btn-blue { background-color: var(--tradebe-blue); }
         .btn-blue:hover { background-color: #00263e; }
 
-        /* Estilos visuales condicionales */
         .estado-gris { color: var(--gray-dark); background: #fdfdfd; }
         .estado-negrita { font-weight: bold; color: black; background: #fff; border-left: 4px solid var(--tradebe-green); }
         
@@ -143,6 +139,7 @@
 
     <div id="loading">Conectando con el servidor...</div>
 
+    <!-- SECCIÓN LOGIN -->
     <div class="container" id="login-section">
         <h3>Iniciar Sesión</h3>
         <input type="text" id="username" placeholder="Usuario" autocomplete="off">
@@ -151,6 +148,7 @@
         <p id="login-error" style="color: red; display: none;"></p>
     </div>
 
+    <!-- SECCIÓN DASHBOARD -->
     <div class="container" id="dashboard-section">
         <div>
             Usuario: <span id="display-user" style="font-weight: bold;"></span> 
@@ -159,6 +157,7 @@
         </div>
         <hr style="margin: 15px 0;">
 
+        <!-- Formulario Registro / Edición para Producción -->
         <div id="form-produccion" style="display: none;">
             <h3 id="form-title">Reportar Nueva Avería</h3>
             <input type="hidden" id="edit-ticket-id" value="">
@@ -179,11 +178,15 @@
             <hr style="margin: 20px 0;">
         </div>
 
+        <!-- Formulario de Cierre de OT para Mantenimiento -->
         <div id="form-mantenimiento" style="display: none; background-color: #f0f7f4; padding: 15px; border-radius: 6px; border: 1px solid var(--tradebe-green); margin-bottom: 20px;">
             <h3>Ejecutar e Introducir Datos de OT</h3>
             <input type="hidden" id="mante-ticket-id" value="">
             <p><strong>OT Seleccionada:</strong> <span id="mante-ot-info">Ninguna</span></p>
             
+            <label for="mante-fecha-cierre">Fecha de Cierre / Ejecución:</label>
+            <input type="date" id="mante-fecha-cierre">
+
             <label for="mante-horas">Horas de Trabajo:</label>
             <input type="number" id="mante-horas" step="0.5" placeholder="Ej: 2.5">
             
@@ -207,7 +210,7 @@
         // ==========================================================
         // INSERTE ENLACE APPSCRIPT AQUI ABAJO
         // ==========================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBbwqZuWo87Rr8tailk8colIYurU85i4CVLy5egpCr2bK6vlEFA0r0qXjHGT67_Yij/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyX7wIfV-rchLvtu9bWU1SnM4wzffyWAE1nVYiUwoIrwDc8cRBlZbYyo71XyM4k8WBF/exec"; 
         
         let currentUser = "";
         let currentRole = "";
@@ -309,7 +312,6 @@
                 return;
             }
 
-            // Lógica específica de Mantenimiento: Separar validadas de pendientes
             if (currentRole === 'mantenimiento') {
                 let validadas = tickets.filter(t => t.estado === 'Validada');
                 let pendientes = tickets.filter(t => t.estado === 'Pendiente');
@@ -328,7 +330,6 @@
                     cerradas.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-gris"));
                 }
             } else {
-                // Para Producción e Ingeniería se muestra la lista corrida ordenada por fecha
                 tickets.forEach(t => {
                     container.innerHTML += htmlFilaTicket(t, "");
                 });
@@ -336,11 +337,16 @@
         }
 
         function htmlFilaTicket(t, statusClass) {
+            // Muestra la fecha de creación al inicio y la de cierre si ya está finalizada
+            let tagFecha = `<small style="color:#666;">[Creada el ${t.fechaCreacion || '---'}]</small>`;
+            let tagCierre = t.fechaCierre ? `<br><small style="color:green;">🎯 <strong>Cerrada el:</strong> ${t.fechaCierre}</small>` : '';
+
             let html = `
                 <div class="ticket-row ${statusClass}">
                     <div class="ticket-content">
-                        <strong>${t.usuario}</strong> - ${t.area} - ${t.maquina} - <em>"${t.descripcion}"</em>
+                        ${tagFecha} <strong>${t.usuario}</strong> - ${t.area} - ${t.maquina} - <em>"${t.descripcion}"</em>
                         ${t.horas ? `<br><small style="color:var(--tradebe-blue);">🔧 <strong>Intervención:</strong> ${t.horas}h | <strong>Material:</strong> ${t.materiales} | <strong>Obs:</strong> ${t.obsMante}</small>` : ''}
+                        ${tagCierre}
                         <br><small style="color:#677;">Estado: <strong>${t.estado}</strong></small>
                     </div>
                     <div class="ticket-actions">
@@ -423,12 +429,15 @@
             document.getElementById('btn-cancel-edit').style.display = "none";
         }
 
-        /* Funciones de Cierre de OT para Mantenimiento */
         function abrirFormularioOT(id, area, maquina) {
             document.getElementById('form-mantenimiento').style.display = "block";
             document.getElementById('mante-ticket-id').value = id;
             document.getElementById('mante-ot-info').innerText = `OT-${id} en ${area} (${maquina})`;
             
+            // Cargar por defecto la fecha de hoy en el selector manual para agilizar el trabajo
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('mante-fecha-cierre').value = hoy;
+
             document.getElementById('mante-horas').value = "";
             document.getElementById('mante-materiales').value = "";
             document.getElementById('mante-observaciones').value = "";
@@ -443,12 +452,13 @@
 
         async function enviarCierreOT() {
             const id = document.getElementById('mante-ticket-id').value;
+            const fechaCierre = document.getElementById('mante-fecha-cierre').value;
             const horas = document.getElementById('mante-horas').value;
             const mat = document.getElementById('mante-materiales').value;
             const obs = document.getElementById('mante-observaciones').value;
 
-            if(!horas || !mat || !obs) {
-                alert("Por favor, rellena las horas, materiales y observaciones técnicos para el histórico.");
+            if(!fechaCierre || !horas || !mat || !obs) {
+                alert("Por favor, introduzca la fecha de cierre y complete todos los campos de la intervención.");
                 return;
             }
 
@@ -457,7 +467,8 @@
                 id: id,
                 horas: horas,
                 materiales: mat,
-                obsMante: obs
+                obsMante: obs,
+                fechaCierre: fechaCierre
             });
 
             cancelarCierreOT();
