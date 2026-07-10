@@ -157,6 +157,12 @@
         </div>
         <hr style="margin: 15px 0;">
 
+        <!-- Selector de Filtro por Área (Mecánicos e Ingeniería) -->
+        <div id="container-filtros" style="display: none; background: #eef2f5; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #ddd;">
+            <label for="filter-area" style="font-weight: bold; color: var(--tradebe-blue); font-size: 0.9em;">Filtrar Listado por Área:</label>
+            <select id="filter-area" onchange="aplicarFiltroAreaLocal()" style="margin-top: 5px;"></select>
+        </div>
+
         <!-- Formulario Registro / Edición para Producción -->
         <div id="form-produccion" style="display: none;">
             <h3 id="form-title">Reportar Nueva Avería</h3>
@@ -210,12 +216,13 @@
         // ==========================================================
         // INSERTE ENLACE APPSCRIPT AQUI ABAJO
         // ==========================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyX7wIfV-rchLvtu9bWU1SnM4wzffyWAE1nVYiUwoIrwDc8cRBlZbYyo71XyM4k8WBF/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcypHLARLWZlO5GbH5oVXXWwDqKjW2GbbIjROAtrpi5zB9WQdPdEEGuVBKx4Hca3RB/exec"; 
         
         let currentUser = "";
         let currentRole = "";
         let globalAreas = [];
         let globalMaquinas = [];
+        let globalTickets = []; // Guardado local para filtrado instantáneo
 
         function normalizarTexto(str) {
             if (!str) return "";
@@ -257,8 +264,13 @@
 
                 if (currentRole === 'produccion') {
                     document.getElementById('form-produccion').style.display = 'block';
+                    document.getElementById('container-filtros').style.display = 'none';
+                } else if (currentRole === 'ingenieria' || currentRole === 'mantenimiento') {
+                    document.getElementById('form-produccion').style.display = 'none';
+                    document.getElementById('container-filtros').style.display = 'block';
                 } else {
                     document.getElementById('form-produccion').style.display = 'none';
+                    document.getElementById('container-filtros').style.display = 'none';
                 }
                 
                 document.getElementById('form-mantenimiento').style.display = 'none';
@@ -271,11 +283,12 @@
         }
 
         function logout() {
-            currentUser = ""; currentRole = "";
+            currentUser = ""; currentRole = ""; globalTickets = [];
             document.getElementById('login-section').style.display = 'block';
             document.getElementById('dashboard-section').style.display = 'none';
             document.getElementById('username').value = "";
             document.getElementById('password').value = "";
+            document.getElementById('filter-area').value = "";
             cancelarEdicion();
             cancelarCierreOT();
         }
@@ -284,70 +297,100 @@
             const data = await fetchAPI({ action: 'getData' });
             globalAreas = data.areas;
             globalMaquinas = data.maquinas;
+            globalTickets = data.tickets; // Mantiene el array completo en memoria
             
-            if (currentRole === 'produccion') {
-                poblarDesplegables();
-            }
-
-            renderTickets(data.tickets);
+            poblarDesplegablesYFiltros();
+            renderTickets(globalTickets);
         }
 
-        function poblarDesplegables() {
-            const sArea = document.getElementById('select-area');
-            const sMaquina = document.getElementById('select-maquina');
-            
-            sArea.innerHTML = '<option value="">Selecciona Área</option>';
-            sMaquina.innerHTML = '<option value="">Selecciona Máquina</option>';
-            
-            globalAreas.forEach(a => sArea.innerHTML += `<option value="${a}">${a}</option>`);
-            globalMaquinas.forEach(m => sMaquina.innerHTML += `<option value="${m}">${m}</option>`);
+        function poblarDesplegablesYFiltros() {
+            // Desplegables de creación de Producción
+            if (currentRole === 'produccion') {
+                const sArea = document.getElementById('select-area');
+                const sMaquina = document.getElementById('select-maquina');
+                sArea.innerHTML = '<option value="">Selecciona Área</option>';
+                sMaquina.innerHTML = '<option value="">Selecciona Máquina</option>';
+                globalAreas.forEach(a => sArea.innerHTML += `<option value="${a}">${a}</option>`);
+                globalMaquinas.forEach(m => sMaquina.innerHTML += `<option value="${m}">${m}</option>`);
+            }
+
+            // Desplegable de filtro para Ingeniería y Mantenimiento
+            if (currentRole === 'ingenieria' || currentRole === 'mantenimiento') {
+                const fArea = document.getElementById('filter-area');
+                const valorPrevio = fArea.value; // Mantiene selección si refresca
+                fArea.innerHTML = '<option value="">-- Ver Todas las Áreas --</option>';
+                globalAreas.forEach(a => fArea.innerHTML += `<option value="${a}">${a}</option>`);
+                if(valorPrevio) fArea.value = valorPrevio;
+            }
+        }
+
+        function aplicarFiltroAreaLocal() {
+            renderTickets(globalTickets);
         }
 
         function renderTickets(tickets) {
             const container = document.getElementById('tickets-container');
             container.innerHTML = "";
 
-            if (tickets.length === 0) {
-                container.innerHTML = "<p style='padding:15px; margin:0;'>No hay OTs registradas.</p>";
-                return;
+            // 1. Filtrado Local por Área si aplica
+            const areaSeleccionada = document.getElementById('filter-area').value;
+            let ticketsFiltrados = tickets;
+            if ((currentRole === 'ingenieria' || currentRole === 'mantenimiento') && areaSeleccionada) {
+                ticketsFiltrados = tickets.filter(t => t.area === areaSeleccionada);
             }
 
-            if (currentRole === 'mantenimiento') {
-                let validadas = tickets.filter(t => t.estado === 'Validada');
-                let pendientes = tickets.filter(t => t.estado === 'Pendiente');
-                let cerradas = tickets.filter(t => t.estado === 'Cerrada');
+            // 2. Clasificación por Estatus
+            let pendientes = ticketsFiltrados.filter(t => t.estado === 'Pendiente');
+            let validadas = ticketsFiltrados.filter(t => t.estado === 'Validada');
+            let cerradas = ticketsFiltrados.filter(t => t.estado === 'Cerrada').slice(0, 10); // Límite estricto de las últimas 10
 
+            // 3. Renderizado Condicional por Rol
+            if (currentRole === 'mantenimiento') {
                 container.innerHTML += `<div class="section-separator">📋 OTs VALIDADAS (Por Gestionar)</div>`;
-                if(validadas.length === 0) container.innerHTML += "<p style='padding:10px; margin:0; font-size:0.9em; color:#666;'>No hay órdenes validadas pendientes.</p>";
+                if(validadas.length === 0) container.innerHTML += "<p style='padding:15px; margin:0; font-size:0.9em; color:#666;'>No hay órdenes validadas listas para reparación.</p>";
                 validadas.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-negrita"));
 
                 container.innerHTML += `<div class="section-separator">⏳ OTs PENDIENTES DE VALIDACIÓN</div>`;
-                if(pendientes.length === 0) container.innerHTML += "<p style='padding:10px; margin:0; font-size:0.9em; color:#666;'>No hay órdenes pendientes de validación.</p>";
+                if(pendientes.length === 0) container.innerHTML += "<p style='padding:15px; margin:0; font-size:0.9em; color:#666;'>No hay órdenes pendientes en este momento.</p>";
                 pendientes.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-gris"));
 
-                if(cerradas.length > 0) {
-                    container.innerHTML += `<div class="section-separator">✅ OTs HISTÓRICAS CERRADAS</div>`;
-                    cerradas.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-gris"));
-                }
+            } else if (currentRole === 'ingenieria') {
+                container.innerHTML += `<div class="section-separator">⏳ OTs PENDIENTES DE VALIDACIÓN (Acción Requerida)</div>`;
+                if(pendientes.length === 0) container.innerHTML += "<p style='padding:15px; margin:0; font-size:0.9em; color:#666;'>¡Al día! No hay órdenes pendientes de autorizar.</p>";
+                pendientes.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-negrita"));
+
+                container.innerHTML += `<div class="section-separator">📋 OTs YA VALIDADAS (Enviadas a Taller)</div>`;
+                if(validadas.length === 0) container.innerHTML += "<p style='padding:15px; margin:0; font-size:0.9em; color:#666;'>No hay órdenes en proceso de taller.</p>";
+                validadas.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-gris"));
+
             } else {
-                tickets.forEach(t => {
-                    container.innerHTML += htmlFilaTicket(t, "");
-                });
+                // Perfil de Producción
+                container.innerHTML += `<div class="section-separator">🛠️ OTs EN CURSO / EN PROCESO</div>`;
+                let activas = pendientes.concat(validadas);
+                if(activas.length === 0) container.innerHTML += "<p style='padding:15px; margin:0; font-size:0.9em; color:#666;'>No tienes órdenes activas reportadas.</p>";
+                activas.forEach(t => container.innerHTML += htmlFilaTicket(t, ""));
+            }
+
+            // 4. Separador Común e Histórico de Incidencias Resueltas (Máx 10) para todos los perfiles
+            container.innerHTML += `<div class="section-separator" style="margin-top:35px; background-color:#e6f4ea; border-left-color:#34a853; color:#137333;">✅ HISTÓRICO: ÚLTIMAS 10 OTs CERRADAS / RESUELTAS</div>`;
+            if(cerradas.length === 0) {
+                container.innerHTML += "<p style='padding:15px; margin:0; font-size:0.9em; color:#666;'>No constan intervenciones cerradas en el registro.</p>";
+            } else {
+                cerradas.forEach(t => container.innerHTML += htmlFilaTicket(t, "estado-gris"));
             }
         }
 
         function htmlFilaTicket(t, statusClass) {
-            // Muestra la fecha de creación al inicio y la de cierre si ya está finalizada
-            let tagFecha = `<small style="color:#666;">[Creada el ${t.fechaCreacion || '---'}]</small>`;
-            let tagCierre = t.fechaCierre ? `<br><small style="color:green;">🎯 <strong>Cerrada el:</strong> ${t.fechaCierre}</small>` : '';
+            let tagFecha = `<small style="color:#666;">[Creada: ${t.fechaCreacion || '---'}]</small>`;
+            let tagCierre = t.fechaCierre ? `<br><small style="color:#137333;">🎯 <strong>Resuelta el:</strong> ${t.fechaCierre}</small>` : '';
 
             let html = `
                 <div class="ticket-row ${statusClass}">
                     <div class="ticket-content">
                         ${tagFecha} <strong>${t.usuario}</strong> - ${t.area} - ${t.maquina} - <em>"${t.descripcion}"</em>
-                        ${t.horas ? `<br><small style="color:var(--tradebe-blue);">🔧 <strong>Intervención:</strong> ${t.horas}h | <strong>Material:</strong> ${t.materiales} | <strong>Obs:</strong> ${t.obsMante}</small>` : ''}
+                        ${t.horas ? `<br><small style="color:var(--tradebe-blue);">🔧 <strong>Intervención:</strong> ${t.horas}h | <strong>Material:</strong> ${t.materiales} | <strong>Técnico:</strong> ${t.obsMante}</small>` : ''}
                         ${tagCierre}
-                        <br><small style="color:#677;">Estado: <strong>${t.estado}</strong></small>
+                        <br><small style="color:#677;">Estatus: <strong>${t.estado}</strong></small>
                     </div>
                     <div class="ticket-actions">
             `;
@@ -360,7 +403,7 @@
             }
 
             if (currentRole === 'ingenieria' && t.estado === 'Pendiente') {
-                html += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Validada')">Validar</button>`;
+                html += `<button class="btn-small btn-blue" onclick="cambiarEstado(${t.id}, 'Validada')">Validar OT</button>`;
             } 
             else if (currentRole === 'mantenimiento' && t.estado === 'Validada') {
                 html += `<button class="btn-small btn-green" style="background-color:var(--tradebe-green);" onclick="abrirFormularioOT(${t.id}, '${t.area}', '${t.maquina}')">Gestionar OT</button>`;
@@ -410,7 +453,7 @@
         function prepararEdicion(id, area, maquina, descripcion) {
             document.getElementById('form-title').innerText = "Editar Avería";
             document.getElementById('edit-ticket-id').value = id;
-            poblarDesplegables();
+            poblarDesplegablesYFiltros();
             document.getElementById('select-area').value = area;
             document.getElementById('select-maquina').value = maquina;
             document.getElementById('desc-averia').value = descripcion;
@@ -434,7 +477,6 @@
             document.getElementById('mante-ticket-id').value = id;
             document.getElementById('mante-ot-info').innerText = `OT-${id} en ${area} (${maquina})`;
             
-            // Cargar por defecto la fecha de hoy en el selector manual para agilizar el trabajo
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('mante-fecha-cierre').value = hoy;
 
